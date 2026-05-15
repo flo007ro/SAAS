@@ -1,0 +1,134 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DesignRunStatus {
+  draft
+  calculating
+  complete
+  failed
+  superseded
+}
+
+enum UnitSystem {
+  metric
+  imperial
+}
+
+enum CodeProfile {
+  AISC_360_22
+  CSA_S16_19
+}
+
+enum DesignRunType {
+  beam
+  column
+  base_plate
+}
+
+model Organization {
+  id                 String         @id @default(cuid())
+  name               String
+  plan               String
+  status             String
+  subscriptionStatus String         @default("none")
+  users              User[]
+  projects           Project[]
+  subscriptions      Subscription[]
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+}
+
+model User {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  email          String       @unique
+  passwordHash   String?
+  role           String
+  status         String
+  designRuns     DesignRun[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model Subscription {
+  id               String       @id @default(cuid())
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id])
+  provider         String
+  status           String
+  seats            Int
+  currentPeriodEnd DateTime
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+}
+
+model Project {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  name           String
+  client         String
+  location       String
+  codeProfile    CodeProfile
+  unitSystem     UnitSystem
+  designRuns     DesignRun[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+model DesignRun {
+  id                    String          @id @default(cuid())
+  projectId             String
+  project               Project         @relation(fields: [projectId], references: [id])
+  createdByUserId       String
+  createdByUser         User            @relation(fields: [createdByUserId], references: [id])
+  supersedesDesignRunId String?
+  type                  DesignRunType
+  title                 String
+  inputJson             Json
+  resultJson            Json?
+  errorCode             String?
+  engineVersion         String?
+  sectionDbVersion      String?
+  status                DesignRunStatus @default(draft)
+  reports               Report[]
+  createdAt             DateTime        @default(now())
+  updatedAt             DateTime        @updatedAt
+}
+
+model Report {
+  id          String    @id @default(cuid())
+  designRunId String
+  designRun   DesignRun @relation(fields: [designRunId], references: [id])
+  fileUrl     String
+  createdAt   DateTime  @default(now())
+}
+
+model SteelSection {
+  id               String     @id @default(cuid())
+  standard         String
+  unitSystem       UnitSystem
+  sectionDbVersion String
+  designation      String
+  family           String
+  area             Float
+  weightOrMass     Float
+  depth            Float
+  flangeWidth      Float
+  webThickness     Float
+  flangeThickness  Float
+  sx               Float
+  ix               Float
+  rx               Float
+  sourceNote       String
+
+  @@index([standard, unitSystem, sectionDbVersion, family])
+  @@index([designation])
+}
