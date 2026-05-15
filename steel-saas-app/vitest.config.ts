@@ -10,4 +10,9 @@ export default defineConfig({
       "@": new URL("./src", import.meta.url).pathname,
     },
   },
+  esbuild: {
+    // Allow .tsx dependencies (e.g. pdfReport.tsx) to be imported from .ts test files
+    jsx: "automatic",
+    jsxImportSource: "react",
+  },
 });

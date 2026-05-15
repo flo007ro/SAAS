@@ -37,11 +37,14 @@ model Organization {
   plan               String
   status             String
   subscriptionStatus String         @default("none")
+  stripeCustomerId   String?
   users              User[]
   projects           Project[]
   subscriptions      Subscription[]
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
+
+  @@index([stripeCustomerId])
 }
 
 model User {

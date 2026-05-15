@@ -1,6 +1,9 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { buildJwtClaims, buildSessionUser, type AppUser } from "./authCallbacks";
+import { authorizeCredentials } from "./authorizeCredentials";
+import { verifyPassword } from "./passwordHash";
+import { prisma } from "./prisma";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   session: { strategy: "jwt" },
@@ -10,9 +13,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" },
       },
-      authorize: async (_credentials): Promise<AppUser | null> => {
-        // TODO: query User by email, verify passwordHash with verifyPassword()
-        return null;
+      authorize: async (credentials): Promise<AppUser | null> => {
+        return authorizeCredentials(credentials as { email?: string; password?: string }, {
+          findUserByEmail: async (email) =>
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (prisma as any).user.findUnique({
+              where: { email },
+              select: { id: true, email: true, organizationId: true, passwordHash: true },
+            }),
+          checkPassword: verifyPassword,
+        });
       },
     }),
   ],
