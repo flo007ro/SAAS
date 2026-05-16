@@ -82,6 +82,7 @@ model Project {
   codeProfile    CodeProfile
   unitSystem     UnitSystem
   designRuns     DesignRun[]
+  archivedAt     DateTime?
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
 }
