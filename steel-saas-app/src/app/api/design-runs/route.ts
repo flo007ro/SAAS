@@ -11,8 +11,6 @@ import type { DesignRunStatus } from "../../../domain/designRunStatus";
 import { designRunRequestSchema } from "./schema";
 import { handleCreateDesignRun, type FindProjectResult } from "./handler";
 
-export { createSynchronousDesignRunResponse } from "../../../domain/designRunResponse";
-export type { SynchronousDesignRunResponse } from "../../../domain/designRunResponse";
 
 export async function POST(req: Request) {
   const session = await auth();

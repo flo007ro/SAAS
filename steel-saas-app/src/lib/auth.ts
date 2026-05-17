@@ -36,10 +36,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       return token;
     },
     session({ session, token }) {
-      session.user = buildSessionUser(session.user, {
-        userId: token.userId,
-        organizationId: token.organizationId,
-      });
+      // Mutate rather than replace — preserves AdapterUser fields (id, emailVerified)
+      session.user.userId = token.userId as string;
+      session.user.organizationId = token.organizationId as string;
       return session;
     },
   },

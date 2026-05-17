@@ -60,7 +60,7 @@ export async function GET(
 
   const filename = `${run.title.replace(/[^a-z0-9]/gi, "_")}.pdf`;
 
-  return new Response(pdfBuffer, {
+  return new Response(new Uint8Array(pdfBuffer), {
     headers: {
       "Content-Type": "application/pdf",
       "Content-Disposition": `inline; filename="${filename}"`,

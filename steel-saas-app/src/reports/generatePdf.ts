@@ -10,5 +10,6 @@ export async function generatePdfReport(
   meta: ReportMeta,
 ): Promise<Buffer> {
   const element = React.createElement(PdfReport, { result, meta });
-  return renderToBuffer(element) as Promise<Buffer>;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return renderToBuffer(element as any) as Promise<Buffer>;
 }

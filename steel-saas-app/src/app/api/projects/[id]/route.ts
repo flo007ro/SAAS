@@ -41,7 +41,7 @@ export async function PATCH(req: Request, { params }: RouteContext) {
 
   if (!result.ok) {
     return NextResponse.json(
-      { error: result.error, ...(result.issues && { issues: result.issues }) },
+      { error: result.error, ...(result.issues ? { issues: result.issues } : {}) },
       { status: result.httpStatus },
     );
   }

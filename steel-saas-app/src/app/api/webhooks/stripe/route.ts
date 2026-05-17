@@ -3,10 +3,11 @@ import Stripe from "stripe";
 import { prisma } from "../../../../lib/prisma";
 import { handleStripeWebhook } from "../../../../lib/stripeWebhookHandler";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const stripeClient = new (Stripe as any)(process.env.STRIPE_SECRET_KEY ?? "");
-
 export async function POST(req: Request) {
+  // Lazy-init: avoids Stripe constructor running at build time with no API key
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const stripeClient = new (Stripe as any)(process.env.STRIPE_SECRET_KEY ?? "");
+
   const rawBody = await req.text();
   const signature = req.headers.get("stripe-signature");
 
