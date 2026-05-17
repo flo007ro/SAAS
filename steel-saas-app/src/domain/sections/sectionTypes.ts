@@ -18,5 +18,7 @@ export type SteelSection = {
   rx: number;
   ry: number;
   fy: number;
+  sy?: number;
+  iy?: number;
   sourceNote: string;
 };

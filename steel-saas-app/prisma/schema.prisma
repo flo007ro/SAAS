@@ -131,6 +131,10 @@ model SteelSection {
   sx               Float
   ix               Float
   rx               Float
+  ry               Float?
+  fy               Float?
+  sy               Float?
+  iy               Float?
   sourceNote       String
 
   @@index([standard, unitSystem, sectionDbVersion, family])
