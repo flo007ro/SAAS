@@ -1,5 +1,6 @@
 import { AuthError } from "next-auth";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { signIn } from "../../lib/auth";
 
 async function loginAction(formData: FormData) {
@@ -57,7 +58,8 @@ export default async function LoginPage({ searchParams }: Props) {
           Steel SaaS
         </h1>
         <p style={{ margin: "0 0 2rem", fontSize: "0.875rem", color: "#6b7280" }}>
-          Sign in to your account
+          Sign in to your account.{" "}
+          <Link href="/signup" style={{ color: "#1d4ed8" }}>Create one</Link>
         </p>
 
         {error && (
