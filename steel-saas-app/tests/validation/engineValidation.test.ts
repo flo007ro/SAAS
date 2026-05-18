@@ -81,6 +81,16 @@ describe("VALIDATION: Beam — AISC 360-22 (W12x40, Mf=150 kip·ft, Vf=40 kips)"
     expect(result.displayResults.pass).toBe(true);
     expect(result.displayResults.momentDCR as number).toBeCloseTo(0.777, 2);
     expect(result.displayResults.shearDCR  as number).toBeCloseTo(0.42,  1);
+
+    // sectionSnapshot — AISC SCM 16th ed. corrected values
+    expect(result.sectionSnapshot).toBeDefined();
+    expect(result.sectionSnapshot?.designation).toBe("W12x40");
+    expect(result.sectionSnapshot?.A).toBe(11.7);
+    expect(result.sectionSnapshot?.d).toBe(11.9);
+    expect(result.sectionSnapshot?.Sx).toBe(51.5);
+    expect(result.sectionSnapshot?.ry).toBe(1.94);
+    expect(result.sectionSnapshot?.Fy).toBe(50);
+    expect(result.sectionSnapshot?.sectionDbVersion).toBe("sections-0.1.0");
   });
 });
 
@@ -111,6 +121,16 @@ describe("VALIDATION: Beam — CSA S16-19 (W310x60, Mf=180 kN·m, Vf=90 kN)", ()
     expect(result.displayResults.pass).toBe(true);
     expect(result.displayResults.momentDCR as number).toBeCloseTo(0.676, 2);
     expect(result.displayResults.shearDCR  as number).toBeCloseTo(0.16,  1);
+
+    // sectionSnapshot — first-principles corrected values
+    expect(result.sectionSnapshot).toBeDefined();
+    expect(result.sectionSnapshot?.designation).toBe("W310x60");
+    expect(result.sectionSnapshot?.A).toBe(7640);
+    expect(result.sectionSnapshot?.d).toBe(310);
+    expect(result.sectionSnapshot?.Sx).toBe(858000);
+    expect(result.sectionSnapshot?.ry).toBe(49.0);
+    expect(result.sectionSnapshot?.Fy).toBe(345);
+    expect(result.sectionSnapshot?.sectionDbVersion).toBe("sections-0.1.0");
   });
 });
 
@@ -143,6 +163,15 @@ describe("VALIDATION: Column — AISC 360-22 (W12x40, KL=120 in, Cf=200 kips)", 
     expect(result.displayResults.pass).toBe(true);
     expect(result.displayResults.demandCapacityRatio as number).toBeCloseTo(0.503, 2);
     expect(result.displayResults.slenderness as number).toBeCloseTo(61.9, 0);
+
+    // sectionSnapshot — AISC SCM 16th ed. corrected values
+    expect(result.sectionSnapshot).toBeDefined();
+    expect(result.sectionSnapshot?.designation).toBe("W12x40");
+    expect(result.sectionSnapshot?.A).toBe(11.7);
+    expect(result.sectionSnapshot?.Sx).toBe(51.5);
+    expect(result.sectionSnapshot?.ry).toBe(1.94);
+    expect(result.sectionSnapshot?.Fy).toBe(50);
+    expect(result.sectionSnapshot?.sectionDbVersion).toBe("sections-0.1.0");
   });
 });
 
@@ -175,6 +204,15 @@ describe("VALIDATION: Column — CSA S16-19 (W310x60, KL=3000 mm, Cf=1000 kN)", 
     expect(result.displayResults.pass).toBe(true);
     expect(result.displayResults.demandCapacityRatio as number).toBeCloseTo(0.590, 2);
     expect(result.displayResults.slenderness as number).toBeCloseTo(61.2, 0);
+
+    // sectionSnapshot — first-principles corrected values
+    expect(result.sectionSnapshot).toBeDefined();
+    expect(result.sectionSnapshot?.designation).toBe("W310x60");
+    expect(result.sectionSnapshot?.A).toBe(7640);
+    expect(result.sectionSnapshot?.Sx).toBe(858000);
+    expect(result.sectionSnapshot?.ry).toBe(49.0);
+    expect(result.sectionSnapshot?.Fy).toBe(345);
+    expect(result.sectionSnapshot?.sectionDbVersion).toBe("sections-0.1.0");
   });
 });
 
@@ -211,6 +249,15 @@ describe("VALIDATION: Base Plate — AISC 360-22 (W12x40, Pu=200k, N=14in, B=14i
     expect(result.displayResults.governingCantilever).toBe("n");
     expect(result.displayResults.n as number).toBeCloseTo(3.80, 1);
     expect(result.displayResults.tpRequired as number).toBeCloseTo(0.954, 2);
+
+    // sectionSnapshot — d and bf drive cantilever calculation
+    expect(result.sectionSnapshot).toBeDefined();
+    expect(result.sectionSnapshot?.designation).toBe("W12x40");
+    expect(result.sectionSnapshot?.d).toBe(11.9);
+    expect(result.sectionSnapshot?.bf).toBe(8);
+    expect(result.sectionSnapshot?.A).toBe(11.7);
+    expect(result.sectionSnapshot?.Fy).toBe(50);
+    expect(result.sectionSnapshot?.sectionDbVersion).toBe("sections-0.1.0");
   });
 });
 
@@ -247,5 +294,14 @@ describe("VALIDATION: Base Plate — CSA S16-19 (W310x60, Pu=1500kN, N=450mm, B=
     expect(result.displayResults.governingCantilever).toBe("n");
     expect(result.displayResults.n as number).toBeCloseTo(118.0, 1);
     expect(result.displayResults.tpRequired as number).toBeCloseTo(32.1, 0);
+
+    // sectionSnapshot — d and bf drive cantilever calculation
+    expect(result.sectionSnapshot).toBeDefined();
+    expect(result.sectionSnapshot?.designation).toBe("W310x60");
+    expect(result.sectionSnapshot?.d).toBe(310);
+    expect(result.sectionSnapshot?.bf).toBe(205);
+    expect(result.sectionSnapshot?.A).toBe(7640);
+    expect(result.sectionSnapshot?.Fy).toBe(345);
+    expect(result.sectionSnapshot?.sectionDbVersion).toBe("sections-0.1.0");
   });
 });

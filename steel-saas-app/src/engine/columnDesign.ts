@@ -137,5 +137,17 @@ export function calculateColumnDesign(input: ColumnDesignInput): DesignResult {
     calculationLines,
     warnings,
     codeReferences: [codeClause],
+    sectionSnapshot: {
+      designation: input.section.designation,
+      A:  input.section.area,
+      d:  input.section.depth,
+      bf: input.section.flangeWidth,
+      tf: input.section.flangeThickness,
+      tw: input.section.webThickness,
+      Sx: input.section.sx,
+      ry: input.section.ry,
+      Fy: input.section.fy,
+      sectionDbVersion: input.section.sectionDbVersion,
+    },
   };
 }

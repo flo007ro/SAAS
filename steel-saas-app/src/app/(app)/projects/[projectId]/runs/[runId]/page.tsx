@@ -139,25 +139,46 @@ function DemandCapacitySection({ result }: { result: DesignResult }) {
 // ── section properties ────────────────────────────────────────────────────────
 
 function SectionPropertiesSection({ result }: { result: DesignResult }) {
+  const u = units(result.unitSystem);
+  const sxUnit = result.unitSystem === "metric" ? "mm³" : "in³";
+
+  // Prefer the snapshot captured at calculation time (present in all new runs)
+  if (result.sectionSnapshot) {
+    const s = result.sectionSnapshot;
+    return (
+      <>
+        <R label="Designation"        value={s.designation} />
+        <R label={`Area A`}           value={`${s.A.toLocaleString()} ${u.area}`} />
+        <R label={`Depth d`}          value={`${s.d} ${u.length}`} />
+        <R label={`Flange width bf`}  value={`${s.bf} ${u.length}`} />
+        <R label={`Flange tf`}        value={`${s.tf} ${u.length}`} />
+        <R label={`Web tw`}           value={`${s.tw} ${u.length}`} />
+        <R label={`Elastic Sx`}       value={`${s.Sx.toLocaleString()} ${sxUnit}`} />
+        <R label={`Yield strength Fy`} value={`${s.Fy} ${u.stress}`} />
+        <R label={`Weak-axis ry`}     value={`${s.ry} ${u.length}`} last />
+      </>
+    );
+  }
+
+  // Fallback: look up from live seed (backward-compat for runs before this field was added)
   const snap  = result.displayInputSnapshot;
   const desig = (snap.selectedSection ?? snap.columnSection)?.value as string | undefined;
   const sec   = desig ? sectionSeedV1.find((s) => s.designation === desig) : null;
-  const u     = units(result.unitSystem);
 
   if (!sec) {
-    return <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>Section "{desig}" not found in local database.</p>;
+    return <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>Section data not available for "{desig}".</p>;
   }
-
   return (
     <>
-      <R label="Designation" value={`${sec.designation} (${sec.standard.replace("_", " ")})`} />
-      <R label={`Area A`}            value={`${sec.area} ${u.area}`} />
-      <R label={`Depth d`}           value={`${sec.depth} ${u.length}`} />
-      <R label={`Flange width bf`}   value={`${sec.flangeWidth} ${u.length}`} />
-      <R label={`Flange thickness tf`} value={`${sec.flangeThickness} ${u.length}`} />
-      <R label={`Web thickness tw`}  value={`${sec.webThickness} ${u.length}`} />
-      <R label={`Elastic Sx`}        value={`${sec.sx.toLocaleString()} ${u.area === "mm²" ? "mm³" : "in³"}`} />
-      <R label={`Weak-axis radius ry`} value={`${sec.ry} ${u.length}`} last />
+      <R label="Designation"        value={`${sec.designation} (${sec.standard.replace("_", " ")})`} />
+      <R label={`Area A`}           value={`${sec.area.toLocaleString()} ${u.area}`} />
+      <R label={`Depth d`}          value={`${sec.depth} ${u.length}`} />
+      <R label={`Flange width bf`}  value={`${sec.flangeWidth} ${u.length}`} />
+      <R label={`Flange tf`}        value={`${sec.flangeThickness} ${u.length}`} />
+      <R label={`Web tw`}           value={`${sec.webThickness} ${u.length}`} />
+      <R label={`Elastic Sx`}       value={`${sec.sx.toLocaleString()} ${sxUnit}`} />
+      <R label={`Yield strength Fy`} value={`${sec.fy} ${u.stress}`} />
+      <R label={`Weak-axis ry`}     value={`${sec.ry} ${u.length}`} last />
     </>
   );
 }
