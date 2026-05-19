@@ -11,12 +11,13 @@ const statusColor: Record<string, string> = {
   draft: "rgba(148,163,184,0.5)", superseded: "rgba(100,116,139,0.4)",
 };
 
-export default async function ProjectPage({ params }: { params: { projectId: string } }) {
+export default async function ProjectPage({ params }: { params: Promise<{ projectId: string }> }) {
+  const { projectId } = await params;
   const session = await auth();
   if (!session?.user) redirect("/login");
 
   const project = await prisma.project.findFirst({
-    where: { id: params.projectId, organizationId: session.user.organizationId },
+    where: { id: projectId, organizationId: session.user.organizationId },
     include: {
       designRuns: {
         where: { status: { not: "superseded" } },

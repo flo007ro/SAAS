@@ -49,12 +49,13 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
   );
 }
 
-export default async function RunResultPage({ params }: { params: { projectId: string; runId: string } }) {
+export default async function RunResultPage({ params }: { params: Promise<{ projectId: string; runId: string }> }) {
+  const { projectId, runId } = await params;
   const session = await auth();
   if (!session?.user) redirect("/login");
 
   const run = await prisma.designRun.findFirst({
-    where: { id: params.runId, project: { organizationId: session.user.organizationId } },
+    where: { id: runId, project: { organizationId: session.user.organizationId } },
     include: { project: true },
   });
 
