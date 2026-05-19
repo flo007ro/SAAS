@@ -1,0 +1,161 @@
+/* globals.css — Steel SaaS dark engineering theme */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --steel-bg: #050a12;
+  --steel-surface: rgba(8,15,26,0.85);
+  --steel-border: rgba(56,189,248,0.12);
+  --steel-accent: #38bdf8;
+  --steel-accent-dim: rgba(56,189,248,0.5);
+  --steel-text: #e0f2fe;
+  --steel-text-muted: rgba(148,163,184,0.7);
+  --steel-pass: #34d399;
+  --steel-fail: #f87171;
+  --steel-warn: #fbbf24;
+}
+
+html, body {
+  background: var(--steel-bg);
+  color: var(--steel-text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(56,189,248,0.2); border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(56,189,248,0.4); }
+
+/* Input base */
+input, select, textarea {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--steel-border);
+  border-radius: 8px;
+  color: var(--steel-text);
+  font-size: 14px;
+  padding: 9px 13px;
+  outline: none;
+  transition: border-color 0.2s;
+  font-family: inherit;
+  width: 100%;
+}
+
+input:focus, select:focus, textarea:focus {
+  border-color: var(--steel-accent-dim);
+}
+
+select option {
+  background: #0d1a2a;
+  color: var(--steel-text);
+}
+
+/* Card */
+.steel-card {
+  background: rgba(8,15,26,0.8);
+  border: 1px solid var(--steel-border);
+  border-radius: 12px;
+  padding: 24px;
+  backdrop-filter: blur(16px);
+  position: relative;
+  overflow: hidden;
+}
+
+.steel-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 20%;
+  right: 20%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(56,189,248,0.4), transparent);
+}
+
+/* Button */
+.steel-btn {
+  background: linear-gradient(135deg, rgba(56,189,248,0.12), rgba(56,189,248,0.06));
+  border: 1px solid rgba(56,189,248,0.3);
+  border-radius: 8px;
+  color: var(--steel-accent);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  font-family: monospace;
+  padding: 9px 20px;
+  transition: all 0.2s;
+}
+
+.steel-btn:hover {
+  background: linear-gradient(135deg, rgba(56,189,248,0.22), rgba(56,189,248,0.12));
+  border-color: rgba(56,189,248,0.55);
+}
+
+/* Badge */
+.badge-pass {
+  background: rgba(52,211,153,0.12);
+  border: 1px solid rgba(52,211,153,0.3);
+  color: #34d399;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: monospace;
+  letter-spacing: 0.06em;
+}
+
+.badge-fail {
+  background: rgba(248,113,113,0.12);
+  border: 1px solid rgba(248,113,113,0.3);
+  color: #f87171;
+  border-radius: 6px;
+  padding: 3px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: monospace;
+  letter-spacing: 0.06em;
+}
+
+/* Label */
+.field-label {
+  display: block;
+  font-size: 11px;
+  color: var(--steel-text-muted);
+  font-family: monospace;
+  letter-spacing: 0.07em;
+  margin-bottom: 5px;
+}
+
+/* Section header */
+.section-header {
+  font-size: 11px;
+  color: rgba(56,189,248,0.5);
+  font-family: monospace;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(56,189,248,0.08);
+}
+
+/* Page title */
+.page-title {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--steel-text);
+  letter-spacing: -0.01em;
+  margin-bottom: 4px;
+}
+
+.page-subtitle {
+  font-size: 12px;
+  color: var(--steel-text-muted);
+  font-family: monospace;
+}
