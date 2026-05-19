@@ -1,3 +1,4 @@
+"use client";
 import MeshBackground from "@/components/MeshBackground";
 
 export default function LoginPage() {
