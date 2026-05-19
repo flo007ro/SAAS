@@ -1,11 +1,11 @@
  
 import { getServerSession } from "next-auth";
-import { redirect } from "next/navigation";
+import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 
 export default async function DashboardPage() {
-  const session = await getServerSession();
+  const session = await auth();
   if (!session?.user) redirect("/login");
 
   return (
