@@ -169,7 +169,7 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
                   />
                 </>
               )}
-              {run.type === "basePlate" && (
+              {run.type === "base_plate" && (
                 <>
                   <Row label="Factored compression (P_u)" value={`${snapshot.factoredCompression?.value ?? "—"} ${snapshot.factoredCompression?.unit ?? ""}`} />
                   <Row label="Required bearing area" value={display.requiredBearingArea ?? "—"} />
