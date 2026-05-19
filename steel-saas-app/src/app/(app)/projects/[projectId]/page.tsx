@@ -1,105 +1,178 @@
+import { auth } from "@/lib/auth";
+import { redirect, notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { auth } from "../../../../lib/auth";
-import { prisma } from "../../../../lib/prisma";
+import MeshBackground from "@/components/MeshBackground";
 
-type Props = { params: Promise<{ projectId: string }> };
-
-const STATUS_LABEL: Record<string, string> = {
-  draft:       "Draft",
-  calculating: "Calculating…",
-  complete:    "Complete",
-  failed:      "Failed",
-  superseded:  "Superseded",
+const typeIcon: Record<string, string> = { beam: "⌇", column: "▮", basePlate: "▬" };
+const typeLabel: Record<string, string> = { beam: "Beam", column: "Column", basePlate: "Base Plate" };
+const statusColor: Record<string, string> = {
+  complete: "#34d399", failed: "#f87171", calculating: "#fbbf24",
+  draft: "rgba(148,163,184,0.5)", superseded: "rgba(100,116,139,0.4)",
 };
 
-const STATUS_COLOR: Record<string, string> = {
-  draft:       "#6b7280",
-  calculating: "#d97706",
-  complete:    "#15803d",
-  failed:      "#dc2626",
-  superseded:  "#9ca3af",
-};
-
-const s = {
-  page:   { padding: "2rem", fontFamily: "system-ui, sans-serif", maxWidth: "800px", margin: "0 auto" } as const,
-  back:   { display: "inline-block", marginBottom: "1.25rem", fontSize: "0.875rem", color: "#6b7280", textDecoration: "none" } as const,
-  header: { display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" } as const,
-  h1:     { margin: 0, fontSize: "1.5rem", fontWeight: 700, color: "#111827" } as const,
-  meta:   { fontSize: "0.875rem", color: "#6b7280", marginBottom: "2rem" } as const,
-  section:{ marginTop: "1.5rem" } as const,
-  sh:     { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" } as const,
-  h2:     { margin: 0, fontSize: "1.0625rem", fontWeight: 600, color: "#111827" } as const,
-  btn:    { padding: "0.4rem 0.875rem", background: "#1d4ed8", color: "#fff", border: "none", borderRadius: "4px", fontSize: "0.8125rem", fontWeight: 600, cursor: "pointer", textDecoration: "none" } as const,
-  run:    { display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff", border: "1px solid #e5e7eb", borderRadius: "6px", padding: "0.875rem 1rem", marginBottom: "0.5rem", textDecoration: "none", color: "inherit" } as const,
-  runTitle:{ fontWeight: 500, color: "#111827", fontSize: "0.9375rem" } as const,
-  runMeta: { fontSize: "0.8125rem", color: "#6b7280" } as const,
-  empty:  { color: "#6b7280", fontSize: "0.9375rem", padding: "1.5rem", background: "#f9fafb", border: "1px dashed #d1d5db", borderRadius: "6px", textAlign: "center" } as const,
-};
-
-export default async function ProjectPage({ params }: Props) {
-  const { projectId } = await params;
+export default async function ProjectPage({ params }: { params: { projectId: string } }) {
   const session = await auth();
+  if (!session?.user) redirect("/login");
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const project = await (prisma as any).project.findFirst({
-    where: { id: projectId, organizationId: session!.user.organizationId },
+  const project = await prisma.project.findFirst({
+    where: { id: params.projectId, organizationId: session.user.organizationId },
     include: {
       designRuns: {
         where: { status: { not: "superseded" } },
         orderBy: { createdAt: "desc" },
-        select: { id: true, title: true, type: true, status: true, createdAt: true },
       },
     },
   });
 
   if (!project) notFound();
 
-  const codeLabel = project.codeProfile === "CSA_S16_19" ? "CSA S16-19" : "AISC 360-22";
-  const unitLabel = project.unitSystem === "metric" ? "Metric" : "Imperial";
+  const grouped: Record<string, typeof project.designRuns> = {};
+  project.designRuns.forEach(r => {
+    (grouped[r.type] = grouped[r.type] ?? []).push(r);
+  });
 
   return (
-    <main style={s.page}>
-      <Link href="/projects" style={s.back}>← Projects</Link>
+    <div style={{ minHeight: "100vh", background: "#050a12", position: "relative" }}>
+      <MeshBackground />
+      <div style={{ position: "relative", zIndex: 10, padding: "48px 56px", maxWidth: 1000 }}>
 
-      <div style={s.header}>
-        <h1 style={s.h1}>{project.name}</h1>
-      </div>
-      <p style={s.meta}>
-        {project.client !== "—" && <>{project.client} · </>}
-        {project.location !== "—" && <>{project.location} · </>}
-        {codeLabel} · {unitLabel}
-      </p>
+        {/* Back */}
+        <Link href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "rgba(56,189,248,0.5)", fontSize: 12, fontFamily: "monospace", textDecoration: "none", marginBottom: 32 }}>
+          ← Dashboard
+        </Link>
 
-      <section style={s.section}>
-        <div style={s.sh}>
-          <h2 style={s.h2}>Design runs</h2>
-          <Link href={`/projects/${projectId}/runs/new`} style={s.btn}>
-            New run
-          </Link>
+        {/* Project header */}
+        <div style={{ marginBottom: 40 }}>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16, flexWrap: "wrap" }}>
+            <div>
+              <h1 style={{ fontSize: 28, fontWeight: 600, color: "#e0f2fe", margin: "0 0 8px", letterSpacing: "-0.01em" }}>
+                {project.name}
+              </h1>
+              <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+                {project.client && project.client !== "—" && (
+                  <span style={{ color: "rgba(148,163,184,0.6)", fontSize: 13 }}>{project.client}</span>
+                )}
+                {project.location && project.location !== "—" && (
+                  <span style={{ color: "rgba(148,163,184,0.4)", fontSize: 13 }}>📍 {project.location}</span>
+                )}
+                <span style={{ color: "rgba(56,189,248,0.6)", fontSize: 12, fontFamily: "monospace", background: "rgba(56,189,248,0.08)", border: "1px solid rgba(56,189,248,0.15)", borderRadius: 4, padding: "2px 8px" }}>
+                  {project.codeProfile === "AISC_360_22" ? "AISC 360-22" : "CSA S16-19"}
+                </span>
+                <span style={{ color: "rgba(100,116,139,0.5)", fontSize: 12, fontFamily: "monospace" }}>
+                  {project.unitSystem}
+                </span>
+              </div>
+            </div>
+            <Link href={`/projects/${project.id}/runs/new`} style={{
+              background: "linear-gradient(135deg, rgba(56,189,248,0.15), rgba(56,189,248,0.08))",
+              border: "1px solid rgba(56,189,248,0.3)",
+              borderRadius: 8,
+              padding: "10px 20px",
+              color: "#38bdf8",
+              textDecoration: "none",
+              fontSize: 12,
+              fontFamily: "monospace",
+              letterSpacing: "0.08em",
+              whiteSpace: "nowrap",
+            }}>
+              + NEW RUN
+            </Link>
+          </div>
         </div>
 
+        {/* Design runs */}
         {project.designRuns.length === 0 ? (
-          <div style={s.empty}>
-            No runs yet —{" "}
-            <Link href={`/projects/${projectId}/runs/new`}>create one</Link>
+          <div style={{
+            background: "rgba(8,15,26,0.6)",
+            border: "1px dashed rgba(56,189,248,0.12)",
+            borderRadius: 12,
+            padding: "56px 32px",
+            textAlign: "center",
+          }}>
+            <div style={{ fontSize: 36, marginBottom: 12, opacity: 0.3 }}>⌇</div>
+            <p style={{ color: "rgba(148,163,184,0.4)", fontFamily: "monospace", fontSize: 13, margin: "0 0 20px" }}>
+              No design runs yet
+            </p>
+            <Link href={`/projects/${project.id}/runs/new`} style={{
+              background: "rgba(56,189,248,0.1)",
+              border: "1px solid rgba(56,189,248,0.25)",
+              borderRadius: 8,
+              padding: "9px 20px",
+              color: "#38bdf8",
+              textDecoration: "none",
+              fontSize: 13,
+              fontFamily: "monospace",
+            }}>
+              Create first design run →
+            </Link>
           </div>
         ) : (
-          project.designRuns.map((run: { id: string; title: string; type: string; status: string; createdAt: Date }) => (
-            <div key={run.id} style={s.run}>
-              <div>
-                <div style={s.runTitle}>{run.title}</div>
-                <div style={s.runMeta}>
-                  {run.type.replace("_", " ")} · {new Date(run.createdAt).toLocaleDateString()}
+          <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+            {Object.entries(grouped).map(([type, runs]) => (
+              <div key={type}>
+                <div style={{ fontSize: 11, color: "rgba(56,189,248,0.5)", fontFamily: "monospace", letterSpacing: "0.1em", marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
+                  <span>{typeIcon[type] ?? "·"}</span>
+                  <span>{typeLabel[type] ?? type}</span>
+                  <div style={{ flex: 1, height: 1, background: "rgba(56,189,248,0.08)", marginLeft: 8 }} />
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {runs.map(run => {
+                    const result = run.resultJson as any;
+                    const pass = result?.overallPass;
+                    return (
+                      <Link key={run.id} href={`/projects/${project.id}/runs/${run.id}`} style={{ textDecoration: "none" }}>
+                        <div style={{
+                          background: "rgba(8,15,26,0.75)",
+                          border: "1px solid rgba(56,189,248,0.1)",
+                          borderRadius: 10,
+                          padding: "16px 20px",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 16,
+                          transition: "border-color 0.15s",
+                          cursor: "pointer",
+                        }}
+                          onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(56,189,248,0.25)"}
+                          onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(56,189,248,0.1)"}
+                        >
+                          <div style={{ flex: 1 }}>
+                            <span style={{ color: "#e0f2fe", fontSize: 14, fontWeight: 500 }}>{run.title}</span>
+                          </div>
+                          <span style={{ color: "rgba(100,116,139,0.5)", fontSize: 11, fontFamily: "monospace" }}>
+                            {new Date(run.createdAt).toLocaleDateString()}
+                          </span>
+                          {run.status === "complete" && result && (
+                            <span style={{
+                              fontSize: 11,
+                              fontFamily: "monospace",
+                              fontWeight: 600,
+                              letterSpacing: "0.06em",
+                              color: pass ? "#34d399" : "#f87171",
+                              background: pass ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)",
+                              border: `1px solid ${pass ? "rgba(52,211,153,0.25)" : "rgba(248,113,113,0.25)"}`,
+                              borderRadius: 5,
+                              padding: "2px 9px",
+                            }}>
+                              {pass ? "✓ PASS" : "✗ FAIL"}
+                            </span>
+                          )}
+                          {run.status !== "complete" && (
+                            <span style={{ fontSize: 11, fontFamily: "monospace", color: statusColor[run.status] ?? "gray" }}>
+                              {run.status}
+                            </span>
+                          )}
+                          <span style={{ color: "rgba(56,189,248,0.3)", fontSize: 16 }}>›</span>
+                        </div>
+                      </Link>
+                    );
+                  })}
                 </div>
               </div>
-              <span style={{ fontSize: "0.8125rem", fontWeight: 500, color: STATUS_COLOR[run.status] ?? "#6b7280" }}>
-                {STATUS_LABEL[run.status] ?? run.status}
-              </span>
-            </div>
-          ))
+            ))}
+          </div>
         )}
-      </section>
-    </main>
+      </div>
+    </div>
   );
 }

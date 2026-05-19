@@ -1,117 +1,179 @@
 "use client";
+import MeshBackground from "@/components/MeshBackground";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
 
-import { useActionState } from "react";
-import Link from "next/link";
-import { createProjectAction, type FormState } from "./actions";
+const inputStyle = {
+  background: "rgba(255,255,255,0.04)",
+  border: "1px solid rgba(56,189,248,0.15)",
+  borderRadius: 8,
+  padding: "10px 14px",
+  color: "#e0f2fe",
+  fontSize: 14,
+  outline: "none",
+  width: "100%",
+  fontFamily: "monospace",
+  transition: "border-color 0.2s",
+};
 
-const s = {
-  page:  { padding: "2rem", fontFamily: "system-ui, sans-serif", maxWidth: "560px", margin: "0 auto" } as const,
-  back:  { display: "inline-block", marginBottom: "1.25rem", fontSize: "0.875rem", color: "#6b7280", textDecoration: "none" } as const,
-  h1:    { margin: "0 0 1.5rem", fontSize: "1.5rem", fontWeight: 700, color: "#111827" } as const,
-  card:  { background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "1.75rem" } as const,
-  label: { display: "block", fontSize: "0.875rem", fontWeight: 500, color: "#374151", marginBottom: "0.25rem" } as const,
-  opt:   { fontSize: "0.75rem", color: "#9ca3af", fontWeight: 400 } as const,
-  input: { display: "block", width: "100%", padding: "0.5rem 0.75rem", border: "1px solid #d1d5db", borderRadius: "4px", fontSize: "1rem", marginBottom: "0.25rem", boxSizing: "border-box" } as const,
-  select:{ display: "block", width: "100%", padding: "0.5rem 0.75rem", border: "1px solid #d1d5db", borderRadius: "4px", fontSize: "1rem", marginBottom: "0.25rem", boxSizing: "border-box", background: "#fff" } as const,
-  fieldError: { color: "#dc2626", fontSize: "0.75rem", marginBottom: "0.75rem" } as const,
-  spacer:{ marginBottom: "1rem" } as const,
-  banner:{ background: "#fef2f2", border: "1px solid #fca5a5", color: "#dc2626", borderRadius: "4px", padding: "0.625rem 0.75rem", fontSize: "0.875rem", marginBottom: "1.25rem" } as const,
-  row:   { display: "flex", gap: "0.75rem", justifyContent: "flex-end", marginTop: "1.5rem" } as const,
-  cancel:{ padding: "0.5rem 1rem", background: "transparent", color: "#374151", border: "1px solid #d1d5db", borderRadius: "4px", fontSize: "0.875rem", cursor: "pointer", textDecoration: "none" } as const,
-  submit:{ padding: "0.5rem 1.25rem", background: "#1d4ed8", color: "#fff", border: "none", borderRadius: "4px", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer" } as const,
+const labelStyle = {
+  display: "block" as const,
+  color: "rgba(148,163,184,0.7)",
+  fontSize: 11,
+  fontFamily: "monospace",
+  letterSpacing: "0.07em",
+  marginBottom: 6,
 };
 
 export default function NewProjectPage() {
-  const [state, formAction, pending] = useActionState<FormState, FormData>(
-    createProjectAction,
-    null,
-  );
-  const fe = state?.fieldErrors ?? {};
+  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    const form = e.currentTarget;
+    const data = {
+      name: (form.elements.namedItem("name") as HTMLInputElement).value,
+      client: (form.elements.namedItem("client") as HTMLInputElement).value || "—",
+      location: (form.elements.namedItem("location") as HTMLInputElement).value || "—",
+      codeProfile: (form.elements.namedItem("codeProfile") as HTMLSelectElement).value,
+      unitSystem: (form.elements.namedItem("unitSystem") as HTMLSelectElement).value,
+    };
+
+    const res = await fetch("/api/projects", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    if (res.ok) {
+      const project = await res.json();
+      router.push(`/projects/${project.id}`);
+    } else {
+      const body = await res.json().catch(() => ({}));
+      setError(body.message ?? "Failed to create project.");
+      setLoading(false);
+    }
+  }
 
   return (
-    <main style={s.page}>
-      <Link href="/projects" style={s.back}>← Projects</Link>
-      <h1 style={s.h1}>New project</h1>
+    <div style={{ minHeight: "100vh", background: "#050a12", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <MeshBackground />
+      <div style={{ position: "relative", zIndex: 10, width: "100%", maxWidth: 520, margin: "0 20px" }}>
 
-      <div style={s.card}>
-        {state?.error && !Object.keys(fe).length && (
-          <p role="alert" style={s.banner}>{state.error}</p>
-        )}
+        {/* Back */}
+        <a href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "rgba(56,189,248,0.5)", fontSize: 12, fontFamily: "monospace", textDecoration: "none", marginBottom: 24 }}>
+          ← Dashboard
+        </a>
 
-        <form action={formAction}>
-          {/* Name */}
-          <label htmlFor="name" style={s.label}>
-            Project name <span aria-hidden style={{ color: "#dc2626" }}>*</span>
-          </label>
-          <input
-            id="name" name="name" type="text" required
-            placeholder="e.g. Office Tower Frame"
-            style={{ ...s.input, borderColor: fe.name ? "#fca5a5" : "#d1d5db" }}
-          />
-          {fe.name && <p style={s.fieldError}>{fe.name}</p>}
-          <div style={s.spacer} />
+        {/* Card */}
+        <div style={{
+          background: "rgba(8,15,26,0.85)",
+          border: "1px solid rgba(56,189,248,0.15)",
+          borderRadius: 16,
+          padding: "40px 36px",
+          backdropFilter: "blur(20px)",
+          boxShadow: "0 32px 64px rgba(0,0,0,0.4)",
+          position: "relative",
+          overflow: "hidden",
+        }}>
+          <div style={{ position: "absolute", top: 0, left: "20%", right: "20%", height: 1, background: "linear-gradient(90deg, transparent, rgba(56,189,248,0.5), transparent)" }} />
 
-          {/* Client */}
-          <label htmlFor="client" style={s.label}>
-            Client <span style={s.opt}>(optional)</span>
-          </label>
-          <input
-            id="client" name="client" type="text"
-            placeholder="e.g. City of Toronto"
-            style={s.input}
-          />
-          <div style={s.spacer} />
-
-          {/* Location */}
-          <label htmlFor="location" style={s.label}>
-            Location <span style={s.opt}>(optional)</span>
-          </label>
-          <input
-            id="location" name="location" type="text"
-            placeholder="e.g. Toronto, ON"
-            style={s.input}
-          />
-          <div style={s.spacer} />
-
-          {/* Code profile */}
-          <label htmlFor="codeProfile" style={s.label}>
-            Design code <span aria-hidden style={{ color: "#dc2626" }}>*</span>
-          </label>
-          <select
-            id="codeProfile" name="codeProfile" required
-            defaultValue=""
-            style={{ ...s.select, borderColor: fe.codeProfile ? "#fca5a5" : "#d1d5db" }}
-          >
-            <option value="" disabled>Select code…</option>
-            <option value="AISC_360_22">AISC 360-22</option>
-            <option value="CSA_S16_19">CSA S16-19</option>
-          </select>
-          {fe.codeProfile && <p style={s.fieldError}>{fe.codeProfile}</p>}
-          <div style={s.spacer} />
-
-          {/* Unit system */}
-          <label htmlFor="unitSystem" style={s.label}>
-            Unit system <span aria-hidden style={{ color: "#dc2626" }}>*</span>
-          </label>
-          <select
-            id="unitSystem" name="unitSystem" required
-            defaultValue=""
-            style={{ ...s.select, borderColor: fe.unitSystem ? "#fca5a5" : "#d1d5db" }}
-          >
-            <option value="" disabled>Select units…</option>
-            <option value="metric">Metric (kN, mm, MPa)</option>
-            <option value="imperial">Imperial (kip, in, ksi)</option>
-          </select>
-          {fe.unitSystem && <p style={s.fieldError}>{fe.unitSystem}</p>}
-
-          <div style={s.row}>
-            <Link href="/projects" style={s.cancel}>Cancel</Link>
-            <button type="submit" disabled={pending} style={s.submit}>
-              {pending ? "Creating…" : "Create project"}
-            </button>
+          <div style={{ marginBottom: 32 }}>
+            <h1 style={{ fontSize: 22, fontWeight: 600, color: "#e0f2fe", margin: "0 0 6px", letterSpacing: "-0.01em" }}>
+              New project
+            </h1>
+            <p style={{ color: "rgba(148,163,184,0.5)", fontSize: 12, fontFamily: "monospace", margin: 0 }}>
+              Configure code profile and unit system
+            </p>
           </div>
-        </form>
+
+          {error && (
+            <div style={{ background: "rgba(248,113,113,0.08)", border: "1px solid rgba(248,113,113,0.25)", borderRadius: 8, padding: "10px 14px", color: "#f87171", fontSize: 13, marginBottom: 20, fontFamily: "monospace" }}>
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+
+            <div>
+              <label style={labelStyle}>PROJECT NAME <span style={{ color: "#f87171" }}>*</span></label>
+              <input name="name" required placeholder="e.g. Office Tower Frame" style={inputStyle}
+                onFocus={e => (e.target.style.borderColor = "rgba(56,189,248,0.45)")}
+                onBlur={e => (e.target.style.borderColor = "rgba(56,189,248,0.15)")} />
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+              <div>
+                <label style={labelStyle}>CLIENT <span style={{ color: "rgba(100,116,139,0.5)" }}>(optional)</span></label>
+                <input name="client" placeholder="e.g. City of Toronto" style={inputStyle}
+                  onFocus={e => (e.target.style.borderColor = "rgba(56,189,248,0.45)")}
+                  onBlur={e => (e.target.style.borderColor = "rgba(56,189,248,0.15)")} />
+              </div>
+              <div>
+                <label style={labelStyle}>LOCATION <span style={{ color: "rgba(100,116,139,0.5)" }}>(optional)</span></label>
+                <input name="location" placeholder="e.g. Toronto, ON" style={inputStyle}
+                  onFocus={e => (e.target.style.borderColor = "rgba(56,189,248,0.45)")}
+                  onBlur={e => (e.target.style.borderColor = "rgba(56,189,248,0.15)")} />
+              </div>
+            </div>
+
+            <div>
+              <label style={labelStyle}>DESIGN CODE <span style={{ color: "#f87171" }}>*</span></label>
+              <select name="codeProfile" required defaultValue="" style={{ ...inputStyle, cursor: "pointer" }}>
+                <option value="" disabled>Select code profile...</option>
+                <option value="AISC_360_22">AISC 360-22 (US)</option>
+                <option value="CSA_S16_19">CSA S16-19 (Canada)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={labelStyle}>UNIT SYSTEM <span style={{ color: "#f87171" }}>*</span></label>
+              <select name="unitSystem" required defaultValue="" style={{ ...inputStyle, cursor: "pointer" }}>
+                <option value="" disabled>Select unit system...</option>
+                <option value="imperial">Imperial (kip, ft, in)</option>
+                <option value="metric">Metric (kN, m, mm)</option>
+              </select>
+            </div>
+
+            <div style={{ display: "flex", gap: 12, marginTop: 8 }}>
+              <a href="/dashboard" style={{
+                flex: 1,
+                background: "transparent",
+                border: "1px solid rgba(56,189,248,0.15)",
+                borderRadius: 8,
+                padding: "11px 0",
+                color: "rgba(148,163,184,0.6)",
+                fontSize: 13,
+                fontFamily: "monospace",
+                textDecoration: "none",
+                textAlign: "center",
+                letterSpacing: "0.06em",
+              }}>
+                CANCEL
+              </a>
+              <button type="submit" disabled={loading} style={{
+                flex: 2,
+                background: loading ? "rgba(56,189,248,0.06)" : "linear-gradient(135deg, rgba(56,189,248,0.18), rgba(56,189,248,0.08))",
+                border: "1px solid rgba(56,189,248,0.35)",
+                borderRadius: 8,
+                padding: "11px 0",
+                color: "#38bdf8",
+                fontSize: 13,
+                fontWeight: 600,
+                letterSpacing: "0.1em",
+                fontFamily: "monospace",
+                cursor: loading ? "not-allowed" : "pointer",
+              }}>
+                {loading ? "CREATING..." : "CREATE PROJECT →"}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
-    </main>
+    </div>
   );
 }

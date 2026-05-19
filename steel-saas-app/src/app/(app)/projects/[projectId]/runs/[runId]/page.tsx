@@ -1,340 +1,245 @@
+import { auth } from "@/lib/auth";
+import { redirect, notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { auth } from "../../../../../../lib/auth";
-import { prisma } from "../../../../../../lib/prisma";
-import { designResultSchema, type DesignResult } from "../../../../../../domain/resultContract";
-import { sectionSeedV1 } from "../../../../../../domain/sections/sectionSeed.v1";
+import MeshBackground from "@/components/MeshBackground";
 
-type Props = { params: Promise<{ projectId: string; runId: string }> };
-
-// ── style tokens ─────────────────────────────────────────────────────────────
-
-const T = {
-  page:    { padding: "2rem", fontFamily: "system-ui, sans-serif", maxWidth: "740px", margin: "0 auto" } as const,
-  back:    { display: "inline-block", marginBottom: "1.25rem", fontSize: "0.875rem", color: "#6b7280", textDecoration: "none" } as const,
-  card:    { background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "1.25rem 1.5rem", marginBottom: "1rem" } as const,
-  cardSh:  { fontSize: "0.75rem", fontWeight: 700, textTransform: "uppercase" as const, letterSpacing: "0.07em", color: "#9ca3af", marginBottom: "0.875rem" },
-  row:     { display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "0.375rem 0", borderBottom: "1px solid #f3f4f6", fontSize: "0.875rem", gap: "1rem" } as const,
-  rowLast: { display: "flex", justifyContent: "space-between", alignItems: "baseline", padding: "0.375rem 0", fontSize: "0.875rem", gap: "1rem" } as const,
-  lbl:     { color: "#6b7280", flexShrink: 0 } as const,
-  val:     { fontWeight: 500, color: "#111827", textAlign: "right" as const } as const,
-  mono:    { fontFamily: "Courier, monospace", fontSize: "0.8125rem", color: "#374151", lineHeight: 1.7 } as const,
-  notice:  { borderRadius: "6px", padding: "0.75rem 1rem", fontSize: "0.875rem", marginBottom: "1rem" } as const,
-  badge:   (pass: boolean) =>
-    ({ display: "inline-flex", alignItems: "center", gap: "0.375rem", padding: "0.375rem 1rem", borderRadius: "99px", fontWeight: 700, fontSize: "1rem", background: pass ? "#dcfce7" : "#fee2e2", color: pass ? "#15803d" : "#dc2626" }) as const,
-  dcrVal:  (pass: boolean) =>
-    ({ fontWeight: 700, color: pass ? "#15803d" : "#dc2626", textAlign: "right" as const }) as const,
-};
-
-// ── small components ─────────────────────────────────────────────────────────
-
-function SH({ children }: { children: React.ReactNode }) {
-  return <div style={T.cardSh}>{children}</div>;
-}
-
-function R({ label, value, last }: { label: string; value: React.ReactNode; last?: boolean }) {
+function Row({ label, value, highlight }: { label: string; value: string; highlight?: "pass" | "fail" | null }) {
   return (
-    <div style={last ? T.rowLast : T.row}>
-      <span style={T.lbl}>{label}</span>
-      <span style={T.val}>{value}</span>
-    </div>
-  );
-}
-
-function DCR({ label, dcr }: { label: string; dcr: number }) {
-  const pass = dcr <= 1.0;
-  return (
-    <div style={{ ...T.row, background: pass ? "transparent" : "#fff7f7" }}>
-      <span style={T.lbl}>{label}</span>
-      <span style={T.dcrVal(pass)}>
-        {dcr.toFixed(3)} {pass ? "✓" : "✗"}
+    <div style={{
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      padding: "10px 0",
+      borderBottom: "1px solid rgba(56,189,248,0.06)",
+    }}>
+      <span style={{ color: "rgba(148,163,184,0.7)", fontSize: 13 }}>{label}</span>
+      <span style={{
+        fontSize: 13,
+        fontFamily: "monospace",
+        fontWeight: highlight ? 600 : 400,
+        color: highlight === "pass" ? "#34d399" : highlight === "fail" ? "#f87171" : "#e0f2fe",
+      }}>
+        {value}
+        {highlight === "pass" && <span style={{ marginLeft: 6, fontSize: 11 }}>✓</span>}
+        {highlight === "fail" && <span style={{ marginLeft: 6, fontSize: 11 }}>✗</span>}
       </span>
     </div>
   );
 }
 
-// ── units helper ─────────────────────────────────────────────────────────────
-
-function units(us: "metric" | "imperial") {
-  return us === "metric"
-    ? { force: "kN", moment: "kN·m", length: "mm", area: "mm²", pressure: "MPa", stress: "MPa" }
-    : { force: "kip", moment: "kip·ft", length: "in", area: "in²", pressure: "ksi", stress: "ksi" };
-}
-
-// ── module-type label ─────────────────────────────────────────────────────────
-
-const TYPE_LABEL: Record<string, string> = {
-  beam: "Beam", column: "Column", base_plate: "Base plate",
-};
-
-// ── demand/capacity section ───────────────────────────────────────────────────
-
-function DemandCapacitySection({ result }: { result: DesignResult }) {
-  const snap = result.displayInputSnapshot;
-  const dr   = result.displayResults;
-  const u    = units(result.unitSystem);
-
-  const snap_ = (key: string) => snap[key];
-  const dr_   = (key: string) => dr[key] as number;
-
-  if (result.moduleType === "beam") {
-    const mf  = snap_("factoredMoment");
-    const vf  = snap_("factoredShear");
-    return (
-      <>
-        {/* Moment */}
-        <div style={{ marginBottom: "0.75rem" }}>
-          <R label={`Factored moment ${mf ? `(${mf.label})` : ""}`} value={mf ? `${mf.value} ${u.moment}` : "—"} />
-          <R label={`Moment capacity φMn`}                           value={`${dr_("designMomentCapacity")?.toFixed(1)} ${u.moment}`} />
-          <DCR label="Moment DCR" dcr={dr_("momentDCR")} />
-        </div>
-        {/* Shear */}
-        <div>
-          <R label={`Factored shear ${vf ? `(${vf.label})` : ""}`} value={vf ? `${vf.value} ${u.force}` : "—"} />
-          <R label={`Shear capacity φVn`}                           value={`${dr_("designShearCapacity")?.toFixed(1)} ${u.force}`} />
-          <DCR label="Shear DCR" dcr={dr_("shearDCR")} />
-        </div>
-      </>
-    );
-  }
-
-  if (result.moduleType === "column") {
-    const cf = snap_("factoredCompression");
-    const kl = snap_("effectiveLength");
-    return (
-      <>
-        <R label={`Factored axial ${cf ? `(${cf.label})` : ""}`} value={cf ? `${cf.value} ${u.force}` : "—"} />
-        <R label={`Effective length KL`}                          value={kl ? `${kl.value} ${u.length}` : "—"} />
-        <R label="Slenderness KL/r"                               value={dr_("slenderness")?.toFixed(1)} />
-        <R label={`Elastic buckling stress Fe`}                   value={`${dr_("fe")?.toFixed(1)} ${u.stress}`} />
-        <R label={`Critical stress Fcr`}                          value={`${dr_("fcr")?.toFixed(1)} ${u.stress}`} />
-        <R label={`Axial capacity φCr / φCn`}                     value={`${dr_("factoredResistance")?.toFixed(1)} ${u.force}`} />
-        <DCR label="Demand / capacity ratio" dcr={dr_("demandCapacityRatio")} />
-      </>
-    );
-  }
-
-  if (result.moduleType === "base_plate") {
-    const pu = snap_("factoredCompression");
-    return (
-      <>
-        <R label={`Factored axial ${pu ? `(${pu.label})` : ""}`}     value={pu ? `${pu.value} ${u.force}` : "—"} />
-        <R label={`Required bearing area A₁`}                         value={`${dr_("a1Required")?.toFixed(0)} ${u.area}`} />
-        <R label={`Supplied bearing area N×B`}                        value={`${(dr_("a1Supplied") as number)?.toFixed(0)} ${u.area}`} />
-        <R label="Bearing check" value={
-          <span style={{ fontWeight: 600, color: dr.bearingAreaPass ? "#15803d" : "#dc2626" }}>
-            {dr.bearingAreaPass ? "PASS ✓" : "FAIL ✗"}
-          </span>
-        } />
-        <DCR label="Bearing DCR" dcr={dr_("bearingDCR")} />
-        <R label="Governing cantilever"        value={`${dr.governingCantilever} = ${dr_("lGoverning")?.toFixed(2)} ${u.length}`} />
-        <R label="Required plate thickness tₚ" value={`${dr_("tpRequired")?.toFixed(2)} ${u.length}`} last />
-      </>
-    );
-  }
-
-  return null;
-}
-
-// ── section properties ────────────────────────────────────────────────────────
-
-function SectionPropertiesSection({ result }: { result: DesignResult }) {
-  const u = units(result.unitSystem);
-  const sxUnit = result.unitSystem === "metric" ? "mm³" : "in³";
-
-  // Prefer the snapshot captured at calculation time (present in all new runs)
-  if (result.sectionSnapshot) {
-    const s = result.sectionSnapshot;
-    return (
-      <>
-        <R label="Designation"        value={s.designation} />
-        <R label={`Area A`}           value={`${s.A.toLocaleString()} ${u.area}`} />
-        <R label={`Depth d`}          value={`${s.d} ${u.length}`} />
-        <R label={`Flange width bf`}  value={`${s.bf} ${u.length}`} />
-        <R label={`Flange tf`}        value={`${s.tf} ${u.length}`} />
-        <R label={`Web tw`}           value={`${s.tw} ${u.length}`} />
-        <R label={`Elastic Sx`}       value={`${s.Sx.toLocaleString()} ${sxUnit}`} />
-        <R label={`Yield strength Fy`} value={`${s.Fy} ${u.stress}`} />
-        <R label={`Weak-axis ry`}     value={`${s.ry} ${u.length}`} last />
-      </>
-    );
-  }
-
-  // Fallback: look up from live seed (backward-compat for runs before this field was added)
-  const snap  = result.displayInputSnapshot;
-  const desig = (snap.selectedSection ?? snap.columnSection)?.value as string | undefined;
-  const sec   = desig ? sectionSeedV1.find((s) => s.designation === desig) : null;
-
-  if (!sec) {
-    return <p style={{ fontSize: "0.875rem", color: "#6b7280" }}>Section data not available for "{desig}".</p>;
-  }
+function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <>
-      <R label="Designation"        value={`${sec.designation} (${sec.standard.replace("_", " ")})`} />
-      <R label={`Area A`}           value={`${sec.area.toLocaleString()} ${u.area}`} />
-      <R label={`Depth d`}          value={`${sec.depth} ${u.length}`} />
-      <R label={`Flange width bf`}  value={`${sec.flangeWidth} ${u.length}`} />
-      <R label={`Flange tf`}        value={`${sec.flangeThickness} ${u.length}`} />
-      <R label={`Web tw`}           value={`${sec.webThickness} ${u.length}`} />
-      <R label={`Elastic Sx`}       value={`${sec.sx.toLocaleString()} ${sxUnit}`} />
-      <R label={`Yield strength Fy`} value={`${sec.fy} ${u.stress}`} />
-      <R label={`Weak-axis ry`}     value={`${sec.ry} ${u.length}`} last />
-    </>
+    <div style={{
+      background: "rgba(8,15,26,0.75)",
+      border: "1px solid rgba(56,189,248,0.1)",
+      borderRadius: 12,
+      padding: "24px",
+      backdropFilter: "blur(12px)",
+      marginBottom: 16,
+      position: "relative",
+      overflow: "hidden",
+    }}>
+      <div style={{ position: "absolute", top: 0, left: "10%", right: "10%", height: 1, background: "linear-gradient(90deg, transparent, rgba(56,189,248,0.2), transparent)" }} />
+      <div style={{ fontSize: 11, color: "rgba(56,189,248,0.5)", fontFamily: "monospace", letterSpacing: "0.1em", marginBottom: 16 }}>
+        {title}
+      </div>
+      {children}
+    </div>
   );
 }
 
-// ── page ──────────────────────────────────────────────────────────────────────
-
-export default async function RunResultPage({ params }: Props) {
-  const { projectId, runId } = await params;
+export default async function RunResultPage({ params }: { params: { projectId: string; runId: string } }) {
   const session = await auth();
+  if (!session?.user) redirect("/login");
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const run = await (prisma as any).designRun.findFirst({
-    where: {
-      id: runId,
-      project: { id: projectId, organizationId: session!.user.organizationId },
-    },
-    include: { project: { select: { name: true, codeProfile: true, unitSystem: true } } },
+  const run = await prisma.designRun.findFirst({
+    where: { id: params.runId, project: { organizationId: session.user.organizationId } },
+    include: { project: true },
   });
 
   if (!run) notFound();
 
-  // If superseded, find the run that replaced it
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const supersedingRun: { id: string; title: string } | null =
-    run.status === "superseded"
-      ? await (prisma as any).designRun.findFirst({
-          where: { supersedesDesignRunId: runId, projectId },
-          select: { id: true, title: true },
-        })
-      : null;
+  const result = run.resultJson as any;
+  const display = result?.displayResults ?? {};
+  const snapshot = result?.displayInputSnapshot ?? {};
+  const section = result?.sectionSnapshot ?? {};
+  const warnings = result?.warnings ?? [];
+  const codeRefs = result?.codeClauseReferences ?? [];
+  const overallPass = result?.overallPass;
 
-  const parsed  = designResultSchema.safeParse(run.resultJson);
-  const result  = parsed.success ? parsed.data : null;
-  const pass    = result ? Boolean(result.displayResults.pass) : false;
-
-  const codeLabel = run.project.codeProfile === "CSA_S16_19" ? "CSA S16-19" : "AISC 360-22";
-  const unitLabel = run.project.unitSystem === "metric" ? "Metric" : "Imperial";
-  const typeLabel = TYPE_LABEL[run.type as string] ?? run.type;
-
-  const canShowDetail = result && run.status === "complete";
+  const typeLabel: Record<string, string> = { beam: "Beam", column: "Column", basePlate: "Base Plate" };
 
   return (
-    <main style={T.page}>
-      <Link href={`/projects/${projectId}`} style={T.back}>← {run.project.name}</Link>
+    <div style={{ minHeight: "100vh", background: "#050a12", position: "relative" }}>
+      <MeshBackground />
+      <div style={{ position: "relative", zIndex: 10, padding: "48px 56px", maxWidth: 860 }}>
 
-      {/* ── 1. Header ───────────────────────────────────────────────────────── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "1.5rem" }}>
-        <div>
-          <h1 style={{ margin: "0 0 0.25rem", fontSize: "1.5rem", fontWeight: 700, color: "#111827" }}>
-            {run.title}
-          </h1>
-          <div style={{ fontSize: "0.875rem", color: "#6b7280" }}>
-            {typeLabel} · {codeLabel} · {unitLabel}
+        {/* Back */}
+        <Link href={`/projects/${run.projectId}`} style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "rgba(56,189,248,0.5)", fontSize: 12, fontFamily: "monospace", textDecoration: "none", marginBottom: 32 }}>
+          ← {run.project.name}
+        </Link>
+
+        {/* Header */}
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 36, gap: 16, flexWrap: "wrap" }}>
+          <div>
+            <h1 style={{ fontSize: 28, fontWeight: 600, color: "#e0f2fe", margin: "0 0 8px", letterSpacing: "-0.01em" }}>
+              {run.title}
+            </h1>
+            <p style={{ color: "rgba(148,163,184,0.5)", fontSize: 12, fontFamily: "monospace", margin: 0 }}>
+              {typeLabel[run.type] ?? run.type} · {run.project.codeProfile === "AISC_360_22" ? "AISC 360-22" : "CSA S16-19"} · {run.project.unitSystem}
+            </p>
           </div>
-          <div style={{ fontSize: "0.8125rem", color: "#9ca3af", marginTop: "0.125rem" }}>
-            {new Date(run.createdAt).toLocaleString()}
-          </div>
+          {run.status === "complete" && result && (
+            <div style={{
+              background: overallPass ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)",
+              border: `1px solid ${overallPass ? "rgba(52,211,153,0.3)" : "rgba(248,113,113,0.3)"}`,
+              borderRadius: 10,
+              padding: "12px 20px",
+              textAlign: "center",
+            }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: overallPass ? "#34d399" : "#f87171", fontFamily: "monospace", letterSpacing: "0.05em" }}>
+                {overallPass ? "✓ PASS" : "✗ FAIL"}
+              </div>
+            </div>
+          )}
+          {run.status === "failed" && (
+            <div style={{ background: "rgba(251,191,36,0.1)", border: "1px solid rgba(251,191,36,0.25)", borderRadius: 10, padding: "12px 20px" }}>
+              <div style={{ color: "#fbbf24", fontSize: 13, fontFamily: "monospace" }}>Calculation failed</div>
+              {run.errorCode && <div style={{ color: "rgba(251,191,36,0.6)", fontSize: 11, marginTop: 4 }}>{run.errorCode}</div>}
+            </div>
+          )}
         </div>
-        {canShowDetail && (
-          <span style={T.badge(pass)}>{pass ? "✓ PASS" : "✗ FAIL"}</span>
+
+        {run.status !== "complete" && run.status !== "failed" && (
+          <Card title="STATUS">
+            <p style={{ color: "rgba(148,163,184,0.6)", fontFamily: "monospace", fontSize: 13 }}>
+              Status: {run.status}
+            </p>
+          </Card>
         )}
+
+        {run.status === "complete" && result && (
+          <>
+            {/* Warnings */}
+            {warnings.length > 0 && (
+              <div style={{ background: "rgba(251,191,36,0.08)", border: "1px solid rgba(251,191,36,0.2)", borderRadius: 10, padding: "14px 20px", marginBottom: 16 }}>
+                {warnings.map((w: string, i: number) => (
+                  <p key={i} style={{ color: "#fbbf24", fontSize: 13, margin: i > 0 ? "8px 0 0" : 0 }}>⚠ {w}</p>
+                ))}
+              </div>
+            )}
+            {warnings.length === 0 && (
+              <div style={{ background: "rgba(52,211,153,0.06)", border: "1px solid rgba(52,211,153,0.15)", borderRadius: 10, padding: "12px 20px", marginBottom: 16 }}>
+                <p style={{ color: "rgba(52,211,153,0.7)", fontSize: 12, fontFamily: "monospace", margin: 0 }}>✓ No warnings</p>
+              </div>
+            )}
+
+            {/* Demand / Capacity */}
+            <Card title="DEMAND / CAPACITY">
+              {run.type === "beam" && (
+                <>
+                  <Row label="Factored moment (M_f)" value={`${snapshot.factoredMoment?.value ?? "—"} ${snapshot.factoredMoment?.unit ?? ""}`} />
+                  <Row label="Moment capacity φMn" value={`${display.designMomentCapacity ?? "—"} ${snapshot.factoredMoment?.unit ?? ""}`} />
+                  <Row
+                    label="Moment DCR"
+                    value={display.momentDCR != null ? display.momentDCR.toFixed(3) : "—"}
+                    highlight={display.momentDCR != null ? (display.momentDCR <= 1 ? "pass" : "fail") : null}
+                  />
+                  <div style={{ margin: "8px 0" }} />
+                  <Row label="Factored shear (V_f)" value={`${snapshot.factoredShear?.value ?? "—"} ${snapshot.factoredShear?.unit ?? ""}`} />
+                  <Row label="Shear capacity φVn" value={`${display.designShearCapacity ?? "—"} ${snapshot.factoredShear?.unit ?? ""}`} />
+                  <Row
+                    label="Shear DCR"
+                    value={display.shearDCR != null ? display.shearDCR.toFixed(3) : "—"}
+                    highlight={display.shearDCR != null ? (display.shearDCR <= 1 ? "pass" : "fail") : null}
+                  />
+                </>
+              )}
+              {run.type === "column" && (
+                <>
+                  <Row label="Factored compression (C_f)" value={`${snapshot.factoredCompression?.value ?? "—"} ${snapshot.factoredCompression?.unit ?? ""}`} />
+                  <Row label="Axial capacity φCr" value={`${display.designAxialCapacity ?? "—"} ${snapshot.factoredCompression?.unit ?? ""}`} />
+                  <Row label="Slenderness KL/r" value={display.slendernessRatio?.toFixed(1) ?? "—"} />
+                  <Row
+                    label="DCR"
+                    value={display.demandCapacityRatio != null ? display.demandCapacityRatio.toFixed(3) : "—"}
+                    highlight={display.demandCapacityRatio != null ? (display.demandCapacityRatio <= 1 ? "pass" : "fail") : null}
+                  />
+                </>
+              )}
+              {run.type === "basePlate" && (
+                <>
+                  <Row label="Factored compression (P_u)" value={`${snapshot.factoredCompression?.value ?? "—"} ${snapshot.factoredCompression?.unit ?? ""}`} />
+                  <Row label="Required bearing area" value={display.requiredBearingArea ?? "—"} />
+                  <Row label="Governing cantilever" value={display.governingCantilever ?? "—"} />
+                  <Row label="Required plate thickness t_p" value={display.requiredPlateThickness ?? "—"} />
+                  <Row
+                    label="Bearing DCR"
+                    value={display.demandCapacityRatio != null ? display.demandCapacityRatio.toFixed(3) : "—"}
+                    highlight={display.demandCapacityRatio != null ? (display.demandCapacityRatio <= 1 ? "pass" : "fail") : null}
+                  />
+                </>
+              )}
+            </Card>
+
+            {/* Section properties */}
+            {section.designation && (
+              <Card title="SECTION PROPERTIES USED">
+                <Row label="Designation" value={section.designation} />
+                {section.A && <Row label="Area A" value={`${section.A} ${run.project.unitSystem === "metric" ? "mm²" : "in²"}`} />}
+                {section.d && <Row label="Depth d" value={`${section.d} ${run.project.unitSystem === "metric" ? "mm" : "in"}`} />}
+                {section.bf && <Row label="Flange width bf" value={`${section.bf} ${run.project.unitSystem === "metric" ? "mm" : "in"}`} />}
+                {section.Sx && <Row label="Elastic modulus Sx" value={`${section.Sx} ${run.project.unitSystem === "metric" ? "×10³ mm³" : "in³"}`} />}
+                {section.ry && <Row label="Weak-axis ry" value={`${section.ry} ${run.project.unitSystem === "metric" ? "mm" : "in"}`} />}
+                {section.Fy && <Row label="Yield strength Fy" value={`${section.Fy} ${run.project.unitSystem === "metric" ? "MPa" : "ksi"}`} />}
+              </Card>
+            )}
+
+            {/* Code clauses */}
+            {codeRefs.length > 0 && (
+              <Card title="CODE CLAUSE REFERENCES">
+                {codeRefs.map((ref: string, i: number) => (
+                  <p key={i} style={{ color: "rgba(148,163,184,0.7)", fontSize: 13, margin: i > 0 ? "6px 0 0" : 0, fontFamily: "monospace" }}>§ {ref}</p>
+                ))}
+              </Card>
+            )}
+
+            {/* PDF download */}
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 24 }}>
+              <a
+                href={`/api/design-runs/${run.id}/report`}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  background: "linear-gradient(135deg, rgba(56,189,248,0.15), rgba(56,189,248,0.08))",
+                  border: "1px solid rgba(56,189,248,0.35)",
+                  borderRadius: 8,
+                  padding: "11px 24px",
+                  color: "#38bdf8",
+                  textDecoration: "none",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  fontFamily: "monospace",
+                  letterSpacing: "0.08em",
+                }}
+              >
+                ↓ DOWNLOAD PDF
+              </a>
+            </div>
+          </>
+        )}
+
+        {/* Metadata footer */}
+        <div style={{ marginTop: 40, paddingTop: 20, borderTop: "1px solid rgba(56,189,248,0.06)" }}>
+          <p style={{ color: "rgba(100,116,139,0.4)", fontSize: 11, fontFamily: "monospace", margin: "0 0 4px" }}>
+            Engine: {result?.engineVersion ?? run.engineVersion} · Section DB: {result?.sectionDbVersion ?? "—"} · {new Date(run.createdAt).toLocaleString()}
+          </p>
+          <p style={{ color: "rgba(100,116,139,0.3)", fontSize: 11, margin: 0 }}>
+            Calculation aid only · Engineer of record must verify all results
+          </p>
+        </div>
       </div>
-
-      {/* ── Superseded notice ───────────────────────────────────────────────── */}
-      {run.status === "superseded" && (
-        <div style={{ ...T.notice, background: "#f3f4f6", border: "1px solid #d1d5db", color: "#374151" }}>
-          This run has been superseded by a newer calculation for the same section.
-          {supersedingRun && (
-            <> <Link href={`/projects/${projectId}/runs/${supersedingRun.id}`} style={{ color: "#1d4ed8" }}>View newer run: {supersedingRun.title}</Link></>
-          )}
-        </div>
-      )}
-
-      {/* ── Failed notice ───────────────────────────────────────────────────── */}
-      {run.status === "failed" && (
-        <div style={{ ...T.card, color: "#92400e", background: "#fffbeb", border: "1px solid #fde68a" }}>
-          <strong>Calculation did not complete.</strong>
-          <div style={{ marginTop: "0.25rem", fontSize: "0.875rem" }}>
-            Error code: <code>{run.errorCode ?? "ENGINE_ERROR"}</code>
-          </div>
-        </div>
-      )}
-
-      {/* ── Draft / calculating ─────────────────────────────────────────────── */}
-      {!result && run.status !== "failed" && run.status !== "superseded" && (
-        <div style={{ ...T.card, color: "#6b7280" }}>Calculation did not complete.</div>
-      )}
-
-      {canShowDetail && (
-        <>
-          {/* ── 4. Warnings ─────────────────────────────────────────────────── */}
-          {result.warnings.length > 0 ? (
-            <div style={{ ...T.notice, background: "#fffbeb", border: "1px solid #fde68a", color: "#92400e" }}>
-              <strong style={{ display: "block", marginBottom: "0.375rem" }}>Warnings</strong>
-              {result.warnings.map((w, i) => (
-                <div key={i} style={{ padding: "0.125rem 0" }}>• {w}</div>
-              ))}
-            </div>
-          ) : (
-            <div style={{ ...T.notice, background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#15803d" }}>
-              No warnings.
-            </div>
-          )}
-
-          {/* ── 2. Demand / capacity ────────────────────────────────────────── */}
-          <div style={T.card}>
-            <SH>Demand / capacity</SH>
-            <DemandCapacitySection result={result} />
-          </div>
-
-          {/* ── 3. Section properties ───────────────────────────────────────── */}
-          <div style={T.card}>
-            <SH>Section properties used</SH>
-            <SectionPropertiesSection result={result} />
-          </div>
-
-          {/* Calculation lines (collapsible detail) */}
-          {result.calculationLines.length > 0 && (
-            <details style={{ marginBottom: "1rem" }}>
-              <summary style={{ cursor: "pointer", fontSize: "0.875rem", fontWeight: 600, color: "#374151", padding: "0.75rem 1.25rem", background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px" }}>
-                Calculation lines
-              </summary>
-              <div style={{ ...T.card, marginTop: "0.25rem", marginBottom: 0, ...T.mono }}>
-                {result.calculationLines.map((line, i) => <div key={i}>{line}</div>)}
-              </div>
-            </details>
-          )}
-
-          {/* ── 5. Code clause references ───────────────────────────────────── */}
-          <div style={T.card}>
-            <SH>Code clause references</SH>
-            {result.codeReferences.map((ref, i) => (
-              <div key={i} style={{ fontSize: "0.875rem", color: "#374151", padding: "0.25rem 0" }}>
-                {ref}
-              </div>
-            ))}
-          </div>
-
-          {/* ── 6. Engine metadata + 7. PDF ─────────────────────────────────── */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "0.5rem" }}>
-            <div style={{ fontSize: "0.75rem", color: "#9ca3af", lineHeight: 1.6 }}>
-              <div>Engine: {result.engineVersion}</div>
-              <div>Section DB: {result.sectionDbVersion}</div>
-              <div>Calculated: {new Date(run.createdAt).toLocaleString()}</div>
-            </div>
-            <a
-              href={`/api/design-runs/${runId}/report`}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ display: "inline-block", padding: "0.5rem 1.25rem", background: "#1d4ed8", color: "#fff", border: "none", borderRadius: "4px", fontSize: "0.875rem", fontWeight: 600, textDecoration: "none" }}
-            >
-              ↓ Download PDF
-            </a>
-          </div>
-        </>
-      )}
-    </main>
+    </div>
   );
 }
