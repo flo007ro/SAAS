@@ -121,18 +121,9 @@ export default async function DashboardPage() {
                   borderRadius: 10,
                   padding: "20px 22px",
                   backdropFilter: "blur(12px)",
-                  transition: "border-color 0.2s, background 0.2s",
-                  cursor: "pointer",
                   position: "relative",
                   overflow: "hidden",
-                }}
-                    (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(56,189,248,0.3)";
-                    (e.currentTarget as HTMLDivElement).style.background = "rgba(8,15,26,0.9)";
-                  }}
-                    (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(56,189,248,0.1)";
-                    (e.currentTarget as HTMLDivElement).style.background = "rgba(8,15,26,0.75)";
-                  }}
-                >
+                }}>
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
                     <h3 style={{ color: "#e0f2fe", fontSize: 15, fontWeight: 500, margin: 0, flex: 1 }}>{p.name}</h3>
                     <span style={{
