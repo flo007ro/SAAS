@@ -126,11 +126,9 @@ export default async function DashboardPage() {
                   position: "relative",
                   overflow: "hidden",
                 }}
-                  onMouseEnter={e => {
                     (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(56,189,248,0.3)";
                     (e.currentTarget as HTMLDivElement).style.background = "rgba(8,15,26,0.9)";
                   }}
-                  onMouseLeave={e => {
                     (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(56,189,248,0.1)";
                     (e.currentTarget as HTMLDivElement).style.background = "rgba(8,15,26,0.75)";
                   }}
