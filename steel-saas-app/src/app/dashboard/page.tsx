@@ -1,3 +1,4 @@
+import ClearProjectsButton from "@/components/ClearProjectsButton";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
@@ -71,6 +72,7 @@ export default async function DashboardPage() {
           <h2 style={{ fontSize: 13, color: "rgba(56,189,248,0.6)", fontFamily: "monospace", letterSpacing: "0.1em", margin: 0 }}>
             RECENT PROJECTS
           </h2>
+           <ClearProjectsButton />
           <Link href="/projects/new" style={{
             background: "rgba(56,189,248,0.08)",
             border: "1px solid rgba(56,189,248,0.25)",
