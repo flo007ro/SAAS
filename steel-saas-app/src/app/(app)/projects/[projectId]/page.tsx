@@ -134,8 +134,8 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
                           transition: "border-color 0.15s",
                           cursor: "pointer",
                         }}
-                          onMouseEnter={e => (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(56,189,248,0.25)"}
-                          onMouseLeave={e => (e.currentTarget as HTMLDivElement).style.borderColor = "rgba(56,189,248,0.1)"}
+                          
+                          
                         >
                           <div style={{ flex: 1 }}>
                             <span style={{ color: "#e0f2fe", fontSize: 14, fontWeight: 500 }}>{run.title}</span>
