@@ -1,9 +1,9 @@
-import ClearProjectsButton from "@/components/ClearProjectsButton";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import MeshBackground from "@/components/MeshBackground";
+import ClearProjectsButton from "@/components/ClearProjectsButton";
 
 export default async function DashboardPage() {
   const session = await auth();
@@ -23,7 +23,6 @@ export default async function DashboardPage() {
       <MeshBackground />
       <div style={{ position: "relative", zIndex: 10, padding: "48px 56px", maxWidth: 1100 }}>
 
-        {/* Header */}
         <div style={{ marginBottom: 48 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
             <svg width="22" height="22" viewBox="0 0 28 28" fill="none">
@@ -43,21 +42,16 @@ export default async function DashboardPage() {
           </p>
         </div>
 
-        {/* Stats row */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 16, marginBottom: 40 }}>
           {[
-            { label: "PROJECTS", value: projects.length, icon: "⊞" },
-            { label: "DESIGN RUNS", value: totalRuns, icon: "⌇" },
+            { label: "PROJECTS", value: String(projects.length), icon: "⊞" },
+            { label: "DESIGN RUNS", value: String(totalRuns), icon: "⌇" },
             { label: "CODE PROFILES", value: "AISC · CSA", icon: "§" },
           ].map(({ label, value, icon }) => (
             <div key={label} style={{
-              background: "rgba(8,15,26,0.8)",
-              border: "1px solid rgba(56,189,248,0.1)",
-              borderRadius: 12,
-              padding: "20px 24px",
-              backdropFilter: "blur(16px)",
-              position: "relative",
-              overflow: "hidden",
+              background: "rgba(8,15,26,0.8)", border: "1px solid rgba(56,189,248,0.1)",
+              borderRadius: 12, padding: "20px 24px", backdropFilter: "blur(16px)",
+              position: "relative", overflow: "hidden",
             }}>
               <div style={{ position: "absolute", top: 0, left: "15%", right: "15%", height: 1, background: "linear-gradient(90deg, transparent, rgba(56,189,248,0.3), transparent)" }} />
               <div style={{ fontSize: 20, marginBottom: 8 }}>{icon}</div>
@@ -67,80 +61,48 @@ export default async function DashboardPage() {
           ))}
         </div>
 
-        {/* Projects section */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 16, gap: 12, flexWrap: "wrap" }}>
           <h2 style={{ fontSize: 13, color: "rgba(56,189,248,0.6)", fontFamily: "monospace", letterSpacing: "0.1em", margin: 0 }}>
             RECENT PROJECTS
           </h2>
-           <ClearProjectsButton />
-          <Link href="/projects/new" style={{
-            background: "rgba(56,189,248,0.08)",
-            border: "1px solid rgba(56,189,248,0.25)",
-            borderRadius: 7,
-            padding: "7px 16px",
-            color: "#38bdf8",
-            textDecoration: "none",
-            fontSize: 12,
-            fontFamily: "monospace",
-            letterSpacing: "0.06em",
-          }}>
-            + NEW PROJECT
-          </Link>
+          <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+            <ClearProjectsButton />
+            <Link href="/projects/new" style={{
+              background: "rgba(56,189,248,0.08)", border: "1px solid rgba(56,189,248,0.25)",
+              borderRadius: 7, padding: "7px 16px", color: "#38bdf8",
+              textDecoration: "none", fontSize: 12, fontFamily: "monospace", letterSpacing: "0.06em",
+            }}>+ NEW PROJECT</Link>
+          </div>
         </div>
 
         {projects.length === 0 ? (
           <div style={{
-            background: "rgba(8,15,26,0.6)",
-            border: "1px dashed rgba(56,189,248,0.15)",
-            borderRadius: 12,
-            padding: "48px 32px",
-            textAlign: "center",
+            background: "rgba(8,15,26,0.6)", border: "1px dashed rgba(56,189,248,0.15)",
+            borderRadius: 12, padding: "48px 32px", textAlign: "center",
           }}>
             <div style={{ fontSize: 32, marginBottom: 12, opacity: 0.4 }}>⊞</div>
-            <p style={{ color: "rgba(148,163,184,0.5)", fontFamily: "monospace", fontSize: 13, margin: "0 0 20px" }}>
-              No projects yet
-            </p>
+            <p style={{ color: "rgba(148,163,184,0.5)", fontFamily: "monospace", fontSize: 13, margin: "0 0 20px" }}>No projects yet</p>
             <Link href="/projects/new" style={{
-              background: "rgba(56,189,248,0.1)",
-              border: "1px solid rgba(56,189,248,0.3)",
-              borderRadius: 8,
-              padding: "9px 20px",
-              color: "#38bdf8",
-              textDecoration: "none",
-              fontSize: 13,
-              fontFamily: "monospace",
-            }}>
-              Create your first project →
-            </Link>
+              background: "rgba(56,189,248,0.1)", border: "1px solid rgba(56,189,248,0.3)",
+              borderRadius: 8, padding: "9px 20px", color: "#38bdf8",
+              textDecoration: "none", fontSize: 13, fontFamily: "monospace",
+            }}>Create your first project →</Link>
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 14 }}>
             {projects.map(p => (
               <Link key={p.id} href={`/projects/${p.id}`} style={{ textDecoration: "none" }}>
                 <div style={{
-                  background: "rgba(8,15,26,0.75)",
-                  border: "1px solid rgba(56,189,248,0.1)",
-                  borderRadius: 10,
-                  padding: "20px 22px",
-                  backdropFilter: "blur(12px)",
-                  position: "relative",
-                  overflow: "hidden",
+                  background: "rgba(8,15,26,0.75)", border: "1px solid rgba(56,189,248,0.1)",
+                  borderRadius: 10, padding: "20px 22px", backdropFilter: "blur(12px)",
                 }}>
                   <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
                     <h3 style={{ color: "#e0f2fe", fontSize: 15, fontWeight: 500, margin: 0, flex: 1 }}>{p.name}</h3>
                     <span style={{
-                      fontSize: 10,
-                      fontFamily: "monospace",
-                      color: "rgba(56,189,248,0.6)",
-                      background: "rgba(56,189,248,0.08)",
-                      border: "1px solid rgba(56,189,248,0.15)",
-                      borderRadius: 4,
-                      padding: "2px 7px",
-                      marginLeft: 8,
-                      flexShrink: 0,
-                    }}>
-                      {p.codeProfile === "AISC_360_22" ? "AISC" : "CSA"}
-                    </span>
+                      fontSize: 10, fontFamily: "monospace", color: "rgba(56,189,248,0.6)",
+                      background: "rgba(56,189,248,0.08)", border: "1px solid rgba(56,189,248,0.15)",
+                      borderRadius: 4, padding: "2px 7px", marginLeft: 8, flexShrink: 0,
+                    }}>{p.codeProfile === "AISC_360_22" ? "AISC" : "CSA"}</span>
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
                     {p.client && p.client !== "—" && (
@@ -159,7 +121,6 @@ export default async function DashboardPage() {
           </div>
         )}
 
-        {/* Footer */}
         <div style={{ marginTop: 48, paddingTop: 24, borderTop: "1px solid rgba(56,189,248,0.06)" }}>
           <p style={{ color: "rgba(100,116,139,0.4)", fontSize: 11, fontFamily: "monospace", margin: 0 }}>
             Calculation aid only · All results must be verified by the engineer of record
