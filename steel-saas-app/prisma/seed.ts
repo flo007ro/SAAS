@@ -15,6 +15,7 @@
 
 import { PrismaClient } from "@prisma/client";
 import { hashPassword } from "../src/lib/passwordHash";
+import { sectionSeedV1 } from "../src/domain/sections/sectionSeed.v1";
 
 const prisma = new PrismaClient();
 
@@ -81,6 +82,23 @@ async function main() {
     console.log(`✔ Created project: ${project.id}  "${project.name}"`);
   } else {
     console.log(`· Project already exists: ${project.id}  "${project.name}"`);
+  }
+
+  // ── 4. Steel sections ──────────────────────────────────────────────────────
+  let created = 0;
+  for (const s of sectionSeedV1) {
+    const existing = await (prisma as any).steelSection.findFirst({
+      where: { designation: s.designation },
+    });
+    if (!existing) {
+      await (prisma as any).steelSection.create({ data: s });
+      created++;
+    }
+  }
+  if (created > 0) {
+    console.log(`✔ Seeded ${created} steel section(s)`);
+  } else {
+    console.log(`· Steel sections already seeded (${sectionSeedV1.length} total)`);
   }
 
   console.log("\nSeed complete. Login with:");

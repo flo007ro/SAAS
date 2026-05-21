@@ -1,5 +1,5 @@
 "use client";
-import { use, useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import MeshBackgroundAlt from "@/components/MeshBackgroundAlt";
 
@@ -34,11 +34,6 @@ const labelStyle: React.CSSProperties = {
   fontFamily: "monospace", letterSpacing: "0.07em", marginBottom: 6,
 };
 
-// Sections conditioned by unit system — clean designation only
-const SECTIONS_BY_UNIT: Record<string, string[]> = {
-  imperial: ["W12x40", "W10x33", "W14x48"],
-  metric: ["W310x60", "W250x39", "W360x79"],
-};
 
 // API expects: beam | column | base_plate
 type ModuleType = "beam" | "column" | "base_plate" | "";
@@ -51,10 +46,17 @@ export default function NewRunPage({ params }: { params: Promise<{ projectId: st
   const [codeProfile, setCodeProfile] = useState("");
   const [unitSystem, setUnitSystem] = useState("");
   const [section, setSection] = useState("");
+  const [availableSections, setAvailableSections] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const availableSections = unitSystem ? (SECTIONS_BY_UNIT[unitSystem] ?? []) : [];
+  useEffect(() => {
+    if (!unitSystem) { setAvailableSections([]); return; }
+    fetch(`/api/sections?unitSystem=${unitSystem}`)
+      .then((r) => r.json())
+      .then((data: string[]) => setAvailableSections(data))
+      .catch(() => setAvailableSections([]));
+  }, [unitSystem]);
 
   const mUnit = unitSystem === "metric" ? "kN·m" : "kip·ft";
   const vUnit = unitSystem === "metric" ? "kN" : "kips";
