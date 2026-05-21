@@ -1,5 +1,5 @@
-import { use } from "react";
 "use client";
+import { use } from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import MeshBackgroundAlt from "@/components/MeshBackgroundAlt";
@@ -114,7 +114,7 @@ export default function NewRunPage({
 
     const body = {
       type,
-      projectId: projectId,
+      projectId,
       title: getValue("title"),
       inputJson: { unitSystem, codeProfile, displayValues },
     };
@@ -140,12 +140,10 @@ export default function NewRunPage({
       <MeshBackgroundAlt />
       <div style={{ position: "relative", zIndex: 10, maxWidth: 720, margin: "0 auto", padding: "52px 32px 80px" }}>
 
-        {/* Back */}
-        <a href={`/projects/${projectId}`} style={{ display: "inline-flex", alignItems: "center", gap: 6, color: `rgba(56,189,248,0.5)`, fontSize: 12, fontFamily: "monospace", textDecoration: "none", marginBottom: 32 }}>
+        <a href={`/projects/${projectId}`} style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "rgba(56,189,248,0.5)", fontSize: 12, fontFamily: "monospace", textDecoration: "none", marginBottom: 32 }}>
           ← Back to project
         </a>
 
-        {/* Card */}
         <div style={{
           background: SURFACE, border: `1px solid ${BORDER}`, borderRadius: 16,
           padding: "40px 44px", backdropFilter: "blur(20px)",
@@ -164,7 +162,6 @@ export default function NewRunPage({
 
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 24 }}>
 
-            {/* Title — full width */}
             <div>
               <label style={labelStyle}>RUN TITLE <span style={{ color: "#f87171" }}>*</span></label>
               <input name="title" required placeholder="e.g. B1 — Roof beam, gridline A" style={inputStyle}
@@ -172,16 +169,11 @@ export default function NewRunPage({
                 onBlur={e => (e.target.style.borderColor = BORDER)} />
             </div>
 
-            {/* Module type — full width */}
             <div>
               <label style={labelStyle}>MODULE TYPE <span style={{ color: "#f87171" }}>*</span></label>
-              <select
-                name="type"
-                required
-                value={type}
+              <select name="type" required value={type}
                 onChange={e => { setType(e.target.value as ModuleType); setSection(""); }}
-                style={selectStyle}
-              >
+                style={selectStyle}>
                 <option value="" disabled style={{ background: PAGE_BG, color: MUTED }}>Select module...</option>
                 <option value="beam" style={{ background: PAGE_BG, color: TEXT }}>Beam design</option>
                 <option value="column" style={{ background: PAGE_BG, color: TEXT }}>Column design</option>
@@ -189,17 +181,11 @@ export default function NewRunPage({
               </select>
             </div>
 
-            {/* Code profile + Unit system — side by side */}
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
               <div>
                 <label style={labelStyle}>DESIGN CODE <span style={{ color: "#f87171" }}>*</span></label>
-                <select
-                  name="codeProfile"
-                  required
-                  value={codeProfile}
-                  onChange={e => setCodeProfile(e.target.value)}
-                  style={selectStyle}
-                >
+                <select name="codeProfile" required value={codeProfile}
+                  onChange={e => setCodeProfile(e.target.value)} style={selectStyle}>
                   <option value="" disabled style={{ background: PAGE_BG, color: MUTED }}>Select code...</option>
                   <option value="AISC_360_22" style={{ background: PAGE_BG, color: TEXT }}>AISC 360-22</option>
                   <option value="CSA_S16_19" style={{ background: PAGE_BG, color: TEXT }}>CSA S16-19</option>
@@ -207,13 +193,8 @@ export default function NewRunPage({
               </div>
               <div>
                 <label style={labelStyle}>UNIT SYSTEM <span style={{ color: "#f87171" }}>*</span></label>
-                <select
-                  name="unitSystem"
-                  required
-                  value={unitSystem}
-                  onChange={e => setUnitSystem(e.target.value)}
-                  style={selectStyle}
-                >
+                <select name="unitSystem" required value={unitSystem}
+                  onChange={e => setUnitSystem(e.target.value)} style={selectStyle}>
                   <option value="" disabled style={{ background: PAGE_BG, color: MUTED }}>Select units...</option>
                   <option value="imperial" style={{ background: PAGE_BG, color: TEXT }}>Imperial (kip, ft, in)</option>
                   <option value="metric" style={{ background: PAGE_BG, color: TEXT }}>Metric (kN, m, mm)</option>
@@ -221,7 +202,6 @@ export default function NewRunPage({
               </div>
             </div>
 
-            {/* Section search — full width */}
             {type && (
               <div>
                 <label style={labelStyle}>STEEL SECTION <span style={{ color: "#f87171" }}>*</span></label>
@@ -239,53 +219,44 @@ export default function NewRunPage({
                       <div style={{ padding: "10px 14px", color: MUTED, fontSize: 13, fontFamily: "monospace" }}>No sections found</div>
                     )}
                     {filtered.map(s => (
-                      <button
-                        key={s}
-                        type="button"
+                      <button key={s} type="button"
                         onClick={() => { setSection(s); setSectionSearch(s); }}
                         style={{
                           display: "block", width: "100%", textAlign: "left",
                           padding: "10px 14px", background: section === s ? "rgba(56,189,248,0.1)" : "transparent",
                           border: "none", color: section === s ? ACCENT : TEXT,
                           fontSize: 13, fontFamily: "monospace", cursor: "pointer",
-                          borderBottom: `1px solid rgba(56,189,248,0.06)`,
-                        }}
-                      >{s}</button>
+                          borderBottom: "1px solid rgba(56,189,248,0.06)",
+                        }}>{s}</button>
                     ))}
-                  </div>
-                )}
-                {section && !sectionSearch.includes(section) && (
-                  <div style={{ marginTop: 6, display: "flex", alignItems: "center", gap: 8 }}>
-                    <span style={{ fontSize: 12, color: ACCENT, fontFamily: "monospace" }}>✓ {section}</span>
-                    <button type="button" onClick={() => { setSection(""); setSectionSearch(""); }} style={{ background: "transparent", border: "none", color: MUTED, fontSize: 11, cursor: "pointer", fontFamily: "monospace" }}>clear</button>
                   </div>
                 )}
                 {section && (
                   <div style={{ marginTop: 6, fontSize: 11, color: "rgba(56,189,248,0.6)", fontFamily: "monospace" }}>
                     Selected: <strong style={{ color: ACCENT }}>{section}</strong>
+                    <button type="button" onClick={() => { setSection(""); setSectionSearch(""); }}
+                      style={{ background: "transparent", border: "none", color: MUTED, fontSize: 11, cursor: "pointer", fontFamily: "monospace", marginLeft: 10 }}>clear</button>
                   </div>
                 )}
               </div>
             )}
 
-            {/* Divider */}
             {type && (
-              <div style={{ borderTop: "1px solid rgba(56,189,248,0.08)", paddingTop: 8 }}>
+              <div style={{ borderTop: "1px solid rgba(56,189,248,0.08)", paddingTop: 20 }}>
                 <div style={{ fontSize: 11, color: "rgba(56,189,248,0.5)", fontFamily: "monospace", letterSpacing: "0.1em", marginBottom: 20 }}>
                   FACTORED DEMANDS — enter factored values only
                 </div>
 
-                {/* BEAM */}
                 {type === "beam" && (
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
                     <div>
-                      <label style={labelStyle}>FACTORED MOMENT M<sub>f</sub> [{mUnit || "—"}] <span style={{ color: "#f87171" }}>*</span></label>
+                      <label style={labelStyle}>FACTORED MOMENT M_f [{mUnit || "—"}] <span style={{ color: "#f87171" }}>*</span></label>
                       <input name="factoredMoment" type="number" step="any" required placeholder="0.0" style={inputStyle}
                         onFocus={e => (e.target.style.borderColor = "rgba(56,189,248,0.5)")}
                         onBlur={e => (e.target.style.borderColor = BORDER)} />
                     </div>
                     <div>
-                      <label style={labelStyle}>FACTORED SHEAR V<sub>f</sub> [{vUnit || "—"}] <span style={{ color: "#f87171" }}>*</span></label>
+                      <label style={labelStyle}>FACTORED SHEAR V_f [{vUnit || "—"}] <span style={{ color: "#f87171" }}>*</span></label>
                       <input name="factoredShear" type="number" step="any" required placeholder="0.0" style={inputStyle}
                         onFocus={e => (e.target.style.borderColor = "rgba(56,189,248,0.5)")}
                         onBlur={e => (e.target.style.borderColor = BORDER)} />
@@ -293,11 +264,10 @@ export default function NewRunPage({
                   </div>
                 )}
 
-                {/* COLUMN */}
                 {type === "column" && (
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
                     <div>
-                      <label style={labelStyle}>FACTORED COMPRESSION C<sub>f</sub> [{cUnit || "—"}] <span style={{ color: "#f87171" }}>*</span></label>
+                      <label style={labelStyle}>FACTORED COMPRESSION C_f [{cUnit || "—"}] <span style={{ color: "#f87171" }}>*</span></label>
                       <input name="factoredCompression" type="number" step="any" required placeholder="0.0" style={inputStyle}
                         onFocus={e => (e.target.style.borderColor = "rgba(56,189,248,0.5)")}
                         onBlur={e => (e.target.style.borderColor = BORDER)} />
@@ -311,11 +281,10 @@ export default function NewRunPage({
                   </div>
                 )}
 
-                {/* BASE PLATE */}
                 {type === "basePlate" && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
                     <div>
-                      <label style={labelStyle}>FACTORED COMPRESSION P<sub>u</sub> [{cUnit || "—"}] <span style={{ color: "#f87171" }}>*</span></label>
+                      <label style={labelStyle}>FACTORED COMPRESSION P_u [{cUnit || "—"}] <span style={{ color: "#f87171" }}>*</span></label>
                       <input name="factoredCompression" type="number" step="any" required placeholder="0.0" style={inputStyle}
                         onFocus={e => (e.target.style.borderColor = "rgba(56,189,248,0.5)")}
                         onBlur={e => (e.target.style.borderColor = BORDER)} />
@@ -334,14 +303,16 @@ export default function NewRunPage({
                           onBlur={e => (e.target.style.borderColor = BORDER)} />
                       </div>
                       <div>
-                        <label style={labelStyle}>CONCRETE f'<sub>c</sub> [{fcUnit || "—"}] <span style={{ color: "#f87171" }}>*</span></label>
-                        <input name="concreteFC" type="number" step="any" required placeholder={unitSystem === "metric" ? "28" : "4"} style={inputStyle}
+                        <label style={labelStyle}>CONCRETE f_c [{fcUnit || "—"}] <span style={{ color: "#f87171" }}>*</span></label>
+                        <input name="concreteFC" type="number" step="any" required
+                          placeholder={unitSystem === "metric" ? "28" : "4"} style={inputStyle}
                           onFocus={e => (e.target.style.borderColor = "rgba(56,189,248,0.5)")}
                           onBlur={e => (e.target.style.borderColor = BORDER)} />
                       </div>
                       <div>
-                        <label style={labelStyle}>PLATE F<sub>y</sub> [{fcUnit || "—"}]</label>
-                        <input name="plateFy" type="number" step="any" placeholder={unitSystem === "metric" ? "250" : "36"} defaultValue={unitSystem === "metric" ? "250" : "36"} style={inputStyle}
+                        <label style={labelStyle}>PLATE F_y [{fcUnit || "—"}]</label>
+                        <input name="plateFy" type="number" step="any"
+                          defaultValue={unitSystem === "metric" ? "250" : "36"} style={inputStyle}
                           onFocus={e => (e.target.style.borderColor = "rgba(56,189,248,0.5)")}
                           onBlur={e => (e.target.style.borderColor = BORDER)} />
                       </div>
@@ -351,23 +322,24 @@ export default function NewRunPage({
               </div>
             )}
 
-            {/* Actions */}
             <div style={{ display: "flex", gap: 14, marginTop: 8 }}>
               <a href={`/projects/${projectId}`} style={{
-                flex: 1, background: "transparent", border: `1px solid rgba(56,189,248,0.15)`,
+                flex: 1, background: "transparent", border: "1px solid rgba(56,189,248,0.15)",
                 borderRadius: 9, padding: "12px 0", color: MUTED,
                 fontSize: 13, fontFamily: "monospace", textDecoration: "none",
                 textAlign: "center", letterSpacing: "0.07em",
               }}>CANCEL</a>
-              <button type="submit" disabled={loading || !type || !section || !codeProfile || !unitSystem} style={{
-                flex: 2,
-                background: loading ? "rgba(56,189,248,0.05)" : "linear-gradient(135deg, rgba(56,189,248,0.2), rgba(56,189,248,0.08))",
-                border: `1px solid rgba(56,189,248,${loading ? "0.15" : "0.4"})`,
-                borderRadius: 9, padding: "12px 0", color: ACCENT,
-                fontSize: 13, fontWeight: 600, fontFamily: "monospace",
-                letterSpacing: "0.1em", cursor: loading ? "not-allowed" : "pointer",
-                opacity: (!type || !section || !codeProfile || !unitSystem) ? 0.5 : 1,
-              }}>
+              <button type="submit"
+                disabled={loading || !type || !section || !codeProfile || !unitSystem}
+                style={{
+                  flex: 2,
+                  background: "linear-gradient(135deg, rgba(56,189,248,0.2), rgba(56,189,248,0.08))",
+                  border: "1px solid rgba(56,189,248,0.4)",
+                  borderRadius: 9, padding: "12px 0", color: ACCENT,
+                  fontSize: 13, fontWeight: 600, fontFamily: "monospace",
+                  letterSpacing: "0.1em", cursor: loading ? "not-allowed" : "pointer",
+                  opacity: (!type || !section || !codeProfile || !unitSystem) ? 0.5 : 1,
+                }}>
                 {loading ? "CALCULATING..." : "RUN CALCULATION →"}
               </button>
             </div>
