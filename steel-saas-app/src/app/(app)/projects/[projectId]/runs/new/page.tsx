@@ -1,3 +1,4 @@
+import { use } from "react";
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -59,8 +60,9 @@ type ModuleType = "beam" | "column" | "basePlate" | "";
 export default function NewRunPage({
   params,
 }: {
-  params: { projectId: string };
+  params: Promise<{ projectId: string }>;
 }) {
+  const { projectId } = use(params);
   const router = useRouter();
   const [type, setType] = useState<ModuleType>("");
   const [codeProfile, setCodeProfile] = useState("");
@@ -112,7 +114,7 @@ export default function NewRunPage({
 
     const body = {
       type,
-      projectId: params.projectId,
+      projectId: projectId,
       title: getValue("title"),
       inputJson: { unitSystem, codeProfile, displayValues },
     };
@@ -125,7 +127,7 @@ export default function NewRunPage({
 
     if (res.ok) {
       const run = await res.json();
-      router.push(`/projects/${params.projectId}/runs/${run.designRun?.id ?? run.id}`);
+      router.push(`/projects/${projectId}/runs/${run.designRun?.id ?? run.id}`);
     } else {
       const data = await res.json().catch(() => ({}));
       setError(data.message ?? "Calculation failed.");
@@ -139,7 +141,7 @@ export default function NewRunPage({
       <div style={{ position: "relative", zIndex: 10, maxWidth: 720, margin: "0 auto", padding: "52px 32px 80px" }}>
 
         {/* Back */}
-        <a href={`/projects/${params.projectId}`} style={{ display: "inline-flex", alignItems: "center", gap: 6, color: `rgba(56,189,248,0.5)`, fontSize: 12, fontFamily: "monospace", textDecoration: "none", marginBottom: 32 }}>
+        <a href={`/projects/${projectId}`} style={{ display: "inline-flex", alignItems: "center", gap: 6, color: `rgba(56,189,248,0.5)`, fontSize: 12, fontFamily: "monospace", textDecoration: "none", marginBottom: 32 }}>
           ← Back to project
         </a>
 
@@ -351,7 +353,7 @@ export default function NewRunPage({
 
             {/* Actions */}
             <div style={{ display: "flex", gap: 14, marginTop: 8 }}>
-              <a href={`/projects/${params.projectId}`} style={{
+              <a href={`/projects/${projectId}`} style={{
                 flex: 1, background: "transparent", border: `1px solid rgba(56,189,248,0.15)`,
                 borderRadius: 9, padding: "12px 0", color: MUTED,
                 fontSize: 13, fontFamily: "monospace", textDecoration: "none",
