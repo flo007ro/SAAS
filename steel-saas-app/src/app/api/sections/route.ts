@@ -1,20 +1,18 @@
-import { NextResponse } from "next/server";
-import { auth } from "../../../lib/auth";
-import { prisma } from "../../../lib/prisma";
+import { auth } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   const session = await auth();
-  if (!session?.user?.userId) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const { searchParams } = new URL(req.url);
-  const unitSystem = searchParams.get("unitSystem");
+  const unitSystem = req.nextUrl.searchParams.get("unitSystem");
+  if (!unitSystem) return NextResponse.json({ error: "unitSystem required" }, { status: 400 });
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const sections = await (prisma as any).steelSection.findMany({
-    where: unitSystem ? { unitSystem } : undefined,
-    orderBy: { weightOrMass: "asc" },
+  const sections = await prisma.steelSection.findMany({
+    where: { unitSystem },
+    orderBy: { designation: "asc" },
+    select: { designation: true, standard: true, unitSystem: true },
   });
 
   return NextResponse.json(sections);
