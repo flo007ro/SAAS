@@ -34,21 +34,14 @@ const labelStyle: React.CSSProperties = {
   fontFamily: "monospace", letterSpacing: "0.07em", marginBottom: 6,
 };
 
-// Sections conditioned by UNIT SYSTEM
-const SECTIONS_BY_UNIT: Record<string, { value: string; label: string }[]> = {
-  imperial: [
-    { value: "W12x40", label: "W12x40 — AISC imperial" },
-    { value: "W10x33", label: "W10x33 — AISC imperial" },
-    { value: "W14x48", label: "W14x48 — AISC imperial" },
-  ],
-  metric: [
-    { value: "W310x60", label: "W310x60 — CSA metric" },
-    { value: "W250x39", label: "W250x39 — CSA metric" },
-    { value: "W360x79", label: "W360x79 — CSA metric" },
-  ],
+// Sections conditioned by unit system — clean designation only
+const SECTIONS_BY_UNIT: Record<string, string[]> = {
+  imperial: ["W12x40", "W10x33", "W14x48"],
+  metric: ["W310x60", "W250x39", "W360x79"],
 };
 
-type ModuleType = "beam" | "column" | "basePlate" | "";
+// API expects: beam | column | base_plate
+type ModuleType = "beam" | "column" | "base_plate" | "";
 
 export default function NewRunPage({ params }: { params: Promise<{ projectId: string }> }) {
   const { projectId } = use(params);
@@ -72,7 +65,7 @@ export default function NewRunPage({ params }: { params: Promise<{ projectId: st
 
   const handleUnitChange = (u: string) => {
     setUnitSystem(u);
-    setSection(""); // reset section when unit changes
+    setSection("");
   };
 
   const canSubmit = !loading && !!type && !!section && !!codeProfile && !!unitSystem;
@@ -98,7 +91,7 @@ export default function NewRunPage({ params }: { params: Promise<{ projectId: st
     } else if (type === "column") {
       displayValues.factoredCompression = { value: parseFloat(getValue("factoredCompression")), unit: cUnit };
       displayValues.effectiveLength = { value: parseFloat(getValue("effectiveLength")), unit: lUnit };
-    } else if (type === "basePlate") {
+    } else if (type === "base_plate") {
       displayValues.factoredCompression = { value: parseFloat(getValue("factoredCompression")), unit: cUnit };
       displayValues.plateN = { value: parseFloat(getValue("plateN")), unit: dimUnit };
       displayValues.plateB = { value: parseFloat(getValue("plateB")), unit: dimUnit };
@@ -129,7 +122,7 @@ export default function NewRunPage({ params }: { params: Promise<{ projectId: st
           setLoading(false);
         }
       } else {
-        setError(data.message ?? data.error ?? `Error ${res.status} — check Vercel logs.`);
+        setError(data.message ?? data.error ?? `Error ${res.status}`);
         setLoading(false);
       }
     } catch {
@@ -175,31 +168,31 @@ export default function NewRunPage({ params }: { params: Promise<{ projectId: st
                 onBlur={e => (e.target.style.borderColor = BORDER)} />
             </div>
 
-            {/* Module type */}
+            {/* Module type — uses API enum values */}
             <div>
               <label style={labelStyle}>MODULE TYPE <span style={{ color: "#f87171" }}>*</span></label>
               <select name="type" required value={type}
                 onChange={e => setType(e.target.value as ModuleType)}
                 style={selectStyle}>
                 <option value="" disabled style={{ background: PAGE_BG }}>Select module...</option>
-                <option value="beam" style={{ background: PAGE_BG }}>⌇  Beam design</option>
-                <option value="column" style={{ background: PAGE_BG }}>▮  Column design</option>
-                <option value="basePlate" style={{ background: PAGE_BG }}>▬  Axial base plate</option>
+                <option value="beam" style={{ background: PAGE_BG }}>Beam design</option>
+                <option value="column" style={{ background: PAGE_BG }}>Column design</option>
+                <option value="base_plate" style={{ background: PAGE_BG }}>Axial base plate</option>
               </select>
             </div>
 
-            {/* Unit system — first, drives sections */}
+            {/* Unit system — drives section list */}
             <div>
               <label style={labelStyle}>
                 UNIT SYSTEM <span style={{ color: "#f87171" }}>*</span>
-                <span style={{ color: "rgba(56,189,248,0.4)", marginLeft: 8, fontWeight: 400 }}>— sets available sections</span>
+                <span style={{ color: "rgba(56,189,248,0.4)", marginLeft: 8 }}>— sets available sections</span>
               </label>
               <select name="unitSystem" required value={unitSystem}
                 onChange={e => handleUnitChange(e.target.value)}
                 style={selectStyle}>
                 <option value="" disabled style={{ background: PAGE_BG }}>Select unit system...</option>
-                <option value="imperial" style={{ background: PAGE_BG }}>Imperial — kip, ft, in  →  AISC sections</option>
-                <option value="metric" style={{ background: PAGE_BG }}>Metric — kN, m, mm  →  CSA sections</option>
+                <option value="imperial" style={{ background: PAGE_BG }}>Imperial — kip, ft, in</option>
+                <option value="metric" style={{ background: PAGE_BG }}>Metric — kN, m, mm</option>
               </select>
             </div>
 
@@ -210,44 +203,32 @@ export default function NewRunPage({ params }: { params: Promise<{ projectId: st
                 onChange={e => setCodeProfile(e.target.value)}
                 style={selectStyle}>
                 <option value="" disabled style={{ background: PAGE_BG }}>Select code profile...</option>
-                <option value="AISC_360_22" style={{ background: PAGE_BG }}>AISC 360-22 (US)</option>
-                <option value="CSA_S16_19" style={{ background: PAGE_BG }}>CSA S16-19 (Canada)</option>
+                <option value="AISC_360_22" style={{ background: PAGE_BG }}>AISC 360-22</option>
+                <option value="CSA_S16_19" style={{ background: PAGE_BG }}>CSA S16-19</option>
               </select>
             </div>
 
-            {/* Steel section — dropdown conditioned by unit system */}
+            {/* Steel section — clean designation only */}
             {type && unitSystem && (
               <div>
                 <label style={labelStyle}>
                   STEEL SECTION <span style={{ color: "#f87171" }}>*</span>
-                  <span style={{ color: "rgba(56,189,248,0.4)", marginLeft: 8, fontWeight: 400 }}>
-                    {unitSystem === "imperial" ? "AISC imperial sections" : "CSA metric sections"}
+                  <span style={{ color: "rgba(56,189,248,0.4)", marginLeft: 8 }}>
+                    {unitSystem === "imperial" ? "AISC imperial" : "CSA metric"}
                   </span>
                 </label>
-                <select
-                  required
-                  value={section}
+                <select required value={section}
                   onChange={e => setSection(e.target.value)}
-                  style={{ ...selectStyle, color: section ? TEXT : MUTED }}
-                >
+                  style={{ ...selectStyle, color: section ? TEXT : MUTED }}>
                   <option value="" disabled style={{ background: PAGE_BG, color: MUTED }}>
-                    Select {unitSystem === "imperial" ? "AISC" : "CSA"} section...
+                    Select section...
                   </option>
                   {availableSections.map(s => (
-                    <option key={s.value} value={s.value} style={{ background: PAGE_BG, color: TEXT }}>
-                      {s.label}
+                    <option key={s} value={s} style={{ background: PAGE_BG, color: TEXT }}>
+                      {s}
                     </option>
                   ))}
                 </select>
-                {section && (
-                  <div style={{ marginTop: 6, fontSize: 11, color: "rgba(56,189,248,0.6)", fontFamily: "monospace" }}>
-                    ✓ Selected: <strong style={{ color: ACCENT }}>{section}</strong>
-                    <button type="button" onClick={() => setSection("")}
-                      style={{ background: "transparent", border: "none", color: "rgba(148,163,184,0.4)", fontSize: 11, fontFamily: "monospace", cursor: "pointer", marginLeft: 10 }}>
-                      clear
-                    </button>
-                  </div>
-                )}
               </div>
             )}
 
@@ -292,7 +273,7 @@ export default function NewRunPage({ params }: { params: Promise<{ projectId: st
                   </div>
                 )}
 
-                {type === "basePlate" && (
+                {type === "base_plate" && (
                   <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
                     <div>
                       <label style={labelStyle}>FACTORED COMPRESSION P_u [{cUnit}] <span style={{ color: "#f87171" }}>*</span></label>
@@ -333,7 +314,6 @@ export default function NewRunPage({ params }: { params: Promise<{ projectId: st
               </div>
             )}
 
-            {/* Actions */}
             <div style={{ display: "flex", gap: 16, paddingTop: 8 }}>
               <a href={`/projects/${projectId}`} style={{
                 flex: 1, background: "transparent", border: "1px solid rgba(56,189,248,0.15)",
@@ -349,7 +329,6 @@ export default function NewRunPage({ params }: { params: Promise<{ projectId: st
                 color: canSubmit ? ACCENT : "rgba(56,189,248,0.3)",
                 fontSize: 13, fontWeight: 600, fontFamily: "monospace",
                 letterSpacing: "0.1em", cursor: canSubmit ? "pointer" : "not-allowed",
-                transition: "all 0.2s",
               }}>
                 {loading ? "CALCULATING..." : "RUN CALCULATION →"}
               </button>
