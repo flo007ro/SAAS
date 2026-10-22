@@ -1,6 +1,7 @@
 import type { CodeProfile } from "../domain/codeProfiles";
 import type { EngineeringUnit, UnitSystem } from "../domain/units";
-import { sectionSeedV1 } from "../domain/sections/sectionSeed.v1";
+import { validateRunInput } from "./runInputValidation";
+import type { DesignRunRequest } from "../app/api/design-runs/schema";
 import { calculateBeamDesign } from "./beamDesign";
 import { EngineError } from "./engineError";
 
@@ -27,13 +28,7 @@ export function runBeamEngine(
     throw new EngineError("MISSING_INPUTS", "selectedSection designation is required");
   }
 
-  const section = sectionSeedV1.find((s) => s.designation === selectedSection.value);
-  if (!section) {
-    throw new EngineError(
-      "SECTION_NOT_FOUND",
-      `Section "${selectedSection.value}" not found in database`,
-    );
-  }
+  const section = validateRunInput("beam", project, inputJson as DesignRunRequest["inputJson"]);
 
   return calculateBeamDesign({
     runId,

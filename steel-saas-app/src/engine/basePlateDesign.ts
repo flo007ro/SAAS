@@ -1,3 +1,4 @@
+import { assertCalculationInputs, ensureFiniteResult } from "./inputGuards";
 import type { CodeProfile } from "../domain/codeProfiles";
 import { validateFactoredDemandInput } from "../domain/demandInputHandling";
 import type { DesignResult } from "../domain/resultContract";
@@ -28,6 +29,14 @@ function phiFactors(codeProfile: CodeProfile): { phiC: number; phiB: number } {
 // ── main function ─────────────────────────────────────────────────────────────
 
 export function calculateBasePlateDesign(input: BasePlateDesignInput): DesignResult {
+  const metric = input.unitSystem === "metric";
+  assertCalculationInputs(input.unitSystem, input.section, [
+    ["Factored compression", input.factoredCompression, metric ? "kN" : "kip"],
+    ["Plate N", input.plateN, metric ? "mm" : "in"],
+    ["Plate B", input.plateB, metric ? "mm" : "in"],
+    ["Concrete strength", input.concreteStrength, metric ? "MPa" : "ksi"],
+    ["Plate yield strength", input.plateFy, metric ? "MPa" : "ksi"],
+  ]);
   const demandChecks = [
     validateFactoredDemandInput({ key: "factoredCompression", ...input.factoredCompression }),
   ];
@@ -66,6 +75,7 @@ export function calculateBasePlateDesign(input: BasePlateDesignInput): DesignRes
   const fp = puNorm / a1Supplied;
   const tpReq = lGov * Math.sqrt((2 * fp) / (phiB * fyPlate));
 
+  if (N < d || B < bf) warnings.push("Plate dimensions do not cover the column footprint.");
   const pass = warnings.length === 0 && bearingAreaPass;
 
   const lengthUnit: EngineeringUnit = input.unitSystem === "metric" ? "mm" : "in";
@@ -74,7 +84,7 @@ export function calculateBasePlateDesign(input: BasePlateDesignInput): DesignRes
   const codeClause =
     input.codeProfile === "CSA_S16_19" ? "CSA S16-19 Clause 17.5" : "AISC 360-22 Section J8";
 
-  return {
+  return ensureFiniteResult({
     runId: input.runId,
     moduleType: "base_plate",
     engineVersion: "engine-0.1.0",
@@ -115,6 +125,7 @@ export function calculateBasePlateDesign(input: BasePlateDesignInput): DesignRes
       tpRequired: Number(tpReq.toFixed(2)),
     },
     calculationLines: [
+      "Scope: concentric compression bearing and required thickness only; supplied thickness, anchors, welds, uplift and moment are not checked.",
       `${input.factoredCompression.label} = ${input.factoredCompression.value} ${forceUnit}`,
       `Plate: N = ${N} ${lengthUnit}, B = ${B} ${lengthUnit}`,
       `A₁_req = P / (φc × 0.85 × f'c) = ${a1Req.toFixed(0)} ${lengthUnit}² [φc = ${phiC}]`,
@@ -139,5 +150,5 @@ export function calculateBasePlateDesign(input: BasePlateDesignInput): DesignRes
       Fy: input.section.fy,
       sectionDbVersion: input.section.sectionDbVersion,
     },
-  };
+  });
 }

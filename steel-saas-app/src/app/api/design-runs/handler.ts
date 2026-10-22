@@ -1,6 +1,7 @@
 import type { CodeProfile } from "../../../domain/codeProfiles";
 import type { DesignRunStatus } from "../../../domain/designRunStatus";
 import type { UnitSystem } from "../../../domain/units";
+import { validateRunInput } from "../../../engine/runInputValidation";
 import { EngineError } from "../../../engine/engineError";
 import type { DesignRunRequest } from "./schema";
 
@@ -60,6 +61,12 @@ export async function handleCreateDesignRun(
   }
 
   const { project } = projectResult;
+  try {
+    validateRunInput(body.type, project, body.inputJson);
+  } catch (error) {
+    if (error instanceof EngineError) return { ok: false, httpStatus: 400, error: error.message, errorCode: error.code };
+    throw error;
+  }
 
   let run = await deps.createDesignRun({
     projectId: body.projectId,

@@ -36,7 +36,7 @@ import type { SteelSection } from "../../src/domain/sections/sectionTypes";
 const W12x40_AISC: SteelSection = {
   designation: "W12x40", standard: "AISC_360_22", unitSystem: "imperial",
   sectionDbVersion: "sections-0.1.0", family: "W",
-  area: 11.7, depth: 11.9, flangeWidth: 8,
+  area: 11.7, weightOrMass: 40, depth: 11.9, flangeWidth: 8,
   webThickness: 0.295, flangeThickness: 0.515,
   sx: 51.5, ix: 307, rx: 5.13, ry: 1.94, fy: 50,
   sy: 11.0, iy: 44.1,
@@ -47,7 +47,7 @@ const W12x40_AISC: SteelSection = {
 const W310x60_CSA: SteelSection = {
   designation: "W310x60", standard: "CSA_S16_19", unitSystem: "metric",
   sectionDbVersion: "sections-0.1.0", family: "W",
-  area: 7640, depth: 310, flangeWidth: 205,
+  area: 7640, weightOrMass: 60, depth: 310, flangeWidth: 205,
   webThickness: 9.4, flangeThickness: 12.7,
   sx: 858000, ix: 133100000, rx: 132, ry: 49.0, fy: 345,
   sy: 178000, iy: 18240000,

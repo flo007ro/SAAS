@@ -1,3 +1,4 @@
+import { assertCalculationInputs, ensureFiniteResult } from "./inputGuards";
 import type { CodeProfile } from "../domain/codeProfiles";
 import { validateFactoredDemandInput } from "../domain/demandInputHandling";
 import type { DesignResult } from "../domain/resultContract";
@@ -14,6 +15,11 @@ export type BeamDesignInput = {
 };
 
 export function calculateBeamDesign(input: BeamDesignInput): DesignResult {
+  const metric = input.unitSystem === "metric";
+  assertCalculationInputs(input.unitSystem, input.section, [
+    ["Factored moment", input.factoredMoment, metric ? "kN-m" : "kip-ft"],
+    ["Factored shear", input.factoredShear, metric ? "kN" : "kip"],
+  ]);
   const demandChecks = [
     validateFactoredDemandInput({ key: "factoredMoment", ...input.factoredMoment }),
     validateFactoredDemandInput({ key: "factoredShear", ...input.factoredShear }),
@@ -62,7 +68,7 @@ export function calculateBeamDesign(input: BeamDesignInput): DesignResult {
       ? "CSA S16-19 Cls. 13.5 + 13.4"
       : "AISC 360-22 Secs. F2 + G2.1";
 
-  return {
+  return ensureFiniteResult({
     runId: input.runId,
     moduleType: "beam",
     engineVersion: "engine-0.1.0",
@@ -98,6 +104,7 @@ export function calculateBeamDesign(input: BeamDesignInput): DesignResult {
       designShearCapacity: Number(phiVnDisplay.toFixed(1)),
     },
     calculationLines: [
+      "Scope: elastic major-axis flexure and simplified shear only; section classification, lateral-torsional buckling and deflection are not checked.",
       // Moment
       `${input.factoredMoment.label} = ${input.factoredMoment.value} ${input.factoredMoment.unit}`,
       `M_r = φ·Fy·Sx = ${phiMn.toFixed(1)} ${momentCapUnit}  [φ=${phi}, Fy=${fy} ${stressUnit}, Sx=${input.section.sx}]`,
@@ -122,5 +129,5 @@ export function calculateBeamDesign(input: BeamDesignInput): DesignResult {
       Fy: input.section.fy,
       sectionDbVersion: input.section.sectionDbVersion,
     },
-  };
+  });
 }

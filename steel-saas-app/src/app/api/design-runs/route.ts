@@ -43,7 +43,7 @@ export async function POST(req: Request) {
       findProject: async (projectId, organizationId): Promise<FindProjectResult> => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const row = await (prisma as any).project.findUnique({ where: { id: projectId } });
-        if (!row) return { found: false };
+        if (!row || row.archivedAt) return { found: false };
         return {
           found: true,
           belongsToOrg: row.organizationId === organizationId,

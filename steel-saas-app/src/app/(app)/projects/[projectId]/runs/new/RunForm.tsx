@@ -1,225 +1,128 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { FactoredDemandField } from "../../../../../../components/forms/FactoredDemandField";
-import { SectionSearch } from "../../../../../../components/forms/SectionSearch";
-import { createRunAction, type RunFormState } from "./actions";
-import type { EngineeringUnit } from "../../../../../../domain/units";
+import { useRouter } from "next/navigation";
+import type { CodeProfile } from "@/domain/codeProfiles";
+import type { UnitSystem } from "@/domain/units";
+import { buildRunInput, parseSectionOptions, runFields, type RunType, type SectionOption } from "@/domain/runForm";
 
-type Props = {
-  projectId: string;
-  projectName: string;
-  unitSystem: "metric" | "imperial";
-  codeProfile: string;
-  availableSections: string[];
-};
+export default function RunForm({ projectId, projectName, unitSystem, codeProfile }: {
+  projectId: string; projectName: string; unitSystem: UnitSystem; codeProfile: CodeProfile;
+}) {
+  const router = useRouter();
+  const [type, setType] = useState<RunType | "">("");
+  const [title, setTitle] = useState("");
+  const [fields, setFields] = useState<Record<string, string>>({});
+  const [section, setSection] = useState("");
+  const [sections, setSections] = useState<SectionOption[]>([]);
+  const [sectionError, setSectionError] = useState("");
+  const [sectionsLoading, setSectionsLoading] = useState(true);
+  const [retry, setRetry] = useState(0);
+  const [error, setError] = useState("");
+  const [failedRunId, setFailedRunId] = useState("");
+  const [pending, setPending] = useState(false);
+  const submitting = useRef(false);
 
-type FieldValues = {
-  title: string;
-  type: "" | "beam" | "column" | "base_plate";
-  factoredMoment: string;
-  factoredShear: string;
-  factoredCompression: string;
-  effectiveLength: string;
-  plateN: string;
-  plateB: string;
-  concreteStrength: string;
-  plateFy: string;
-  selectedSection: string;
-};
+  useEffect(() => {
+    const controller = new AbortController();
+    setSection("");
+    setSections([]);
+    setSectionsLoading(true);
+    setSectionError("");
+    async function load() {
+      try {
+        const response = await fetch(`/api/sections?unitSystem=${unitSystem}&standard=${codeProfile}`, { signal: controller.signal });
+        if (!response.ok) throw new Error("Sections could not be loaded. Check your session and try again.");
+        const options = parseSectionOptions(await response.json(), codeProfile, unitSystem);
+        if (!controller.signal.aborted) setSections(options);
+      } catch (err) {
+        if (!controller.signal.aborted) setSectionError(err instanceof Error ? err.message : "Invalid section response. Please retry.");
+      } finally {
+        if (!controller.signal.aborted) setSectionsLoading(false);
+      }
+    }
+    void load();
+    return () => controller.abort();
+  }, [projectId, unitSystem, codeProfile, retry]);
 
-const TYPE_LABELS: Record<string, string> = {
-  beam: "Beam flexure",
-  column: "Column axial compression",
-  base_plate: "Base plate bearing",
-};
+  async function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (submitting.current || !type) return;
+    setError("");
+    setFailedRunId("");
+    if (!sections.some(s => s.designation === section)) { setError("Select an available steel section."); return; }
+    if (!title.trim()) { setError("Enter a run title."); return; }
+    try {
+      const inputJson = buildRunInput(type, unitSystem, codeProfile, fields, section);
+      submitting.current = true;
+      setPending(true);
+      const response = await fetch("/api/design-runs", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type, projectId, title: title.trim(), inputJson }),
+      });
+      const data = await response.json().catch(() => null);
+      if (!response.ok) throw new Error(typeof data?.error === "string" ? data.error : "Could not save the run. Your inputs are retained.");
+      if (typeof data?.id !== "string") throw new Error("The save response was incomplete. Check the project before retrying to avoid a duplicate run.");
+      if (data.status === "failed") {
+        setFailedRunId(data.id);
+        throw new Error(`Calculation failed (${typeof data.errorCode === "string" ? data.errorCode : "ENGINE_ERROR"}). Your inputs are retained; correct them and retry.`);
+      }
+      if (data.status !== "complete") throw new Error("The run is still processing. Check the project before retrying.");
+      router.push(`/projects/${projectId}/runs/${data.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Request interrupted. Your inputs are retained; check the project before retrying.");
+    } finally {
+      submitting.current = false;
+      setPending(false);
+    }
+  }
 
-export default function RunForm({
-  projectId, projectName, unitSystem, codeProfile, availableSections,
-}: Props) {
-  const [state, formAction, pending] = useActionState<RunFormState, FormData>(
-    createRunAction,
-    null,
-  );
-
-  const [fields, setFields] = useState<FieldValues>({
-    title: "",
-    type: "",
-    factoredMoment: "",
-    factoredShear: "",
-    factoredCompression: "",
-    effectiveLength: "",
-    plateN: "",
-    plateB: "",
-    concreteStrength: "",
-    plateFy: unitSystem === "metric" ? "250" : "36",
-    selectedSection: "",
-  });
-
-  const set = (key: keyof FieldValues) => (val: string) =>
-    setFields((prev) => ({ ...prev, [key]: val }));
-
-  const us = unitSystem;
-  const momentUnit: EngineeringUnit = us === "metric" ? "kN-m"   : "kip-ft";
-  const forceUnit:  EngineeringUnit = us === "metric" ? "kN"     : "kip";
-  const lengthUnit: EngineeringUnit = us === "metric" ? "mm"     : "in";
-  const pressUnit:  EngineeringUnit = us === "metric" ? "MPa"    : "ksi";
-
-  const momentLabel = us === "metric" ? "Factored moment, M_f"      : "Factored moment, M_u";
-  const shearLabel  = us === "metric" ? "Factored shear, V_f"       : "Factored shear, V_u";
-  const compLabel   = us === "metric" ? "Factored compression, C_f" : "Factored compression, P_u";
-
-  return (
-    <>
-      {/* Styles for FactoredDemandField (.field / .inputWithUnit) and SectionSearch */}
-      <style>{`
-        .field { margin-bottom: 1.25rem; }
-        .field > span { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem; }
-        .inputWithUnit { display: flex; }
-        .inputWithUnit input { flex: 1; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-right: none; border-radius: 4px 0 0 4px; font-size: 1rem; }
-        .inputWithUnit > span { padding: 0.5rem 0.75rem; background: #f3f4f6; border: 1px solid #d1d5db; border-radius: 0 4px 4px 0; font-size: 0.875rem; color: #6b7280; white-space: nowrap; display: flex; align-items: center; }
-        .section-wrap section { margin-bottom: 1.25rem; }
-        .section-wrap section > label > span { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem; }
-        .section-wrap section > label > input { display: block; width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 4px; font-size: 1rem; box-sizing: border-box; margin-bottom: 0.375rem; }
-        .section-wrap section > button { padding: 0.375rem 0.75rem; font-size: 0.8125rem; border: 1px solid #d1d5db; border-radius: 4px; background: #f3f4f6; cursor: pointer; color: #374151; }
-      `}</style>
-
-      <main style={{ padding: "2rem", fontFamily: "system-ui, sans-serif", maxWidth: "600px", margin: "0 auto" }}>
-        <Link
-          href={`/projects/${projectId}`}
-          style={{ display: "inline-block", marginBottom: "1.25rem", fontSize: "0.875rem", color: "#6b7280", textDecoration: "none" }}
-        >
-          ← {projectName}
-        </Link>
-        <h1 style={{ margin: "0 0 1.5rem", fontSize: "1.5rem", fontWeight: 700, color: "#111827" }}>
-          New design run
-        </h1>
-
-        {state?.error && (
-          <p role="alert" style={{ background: "#fef2f2", border: "1px solid #fca5a5", color: "#dc2626", borderRadius: "4px", padding: "0.625rem 0.75rem", fontSize: "0.875rem", marginBottom: "1.25rem" }}>
-            {state.error}
-          </p>
-        )}
-
-        <div style={{ background: "#fff", border: "1px solid #e5e7eb", borderRadius: "8px", padding: "1.75rem" }}>
-          <form action={formAction}>
-            {/* Hidden project/unit context */}
-            <input type="hidden" name="projectId"   value={projectId} />
-            <input type="hidden" name="unitSystem"  value={unitSystem} />
-            <input type="hidden" name="codeProfile" value={codeProfile} />
-
-            {/* ── Step 1: Title + type ──────────────────────────── */}
-            <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, color: "#374151", marginBottom: "0.25rem" }}>
-              Run title <span style={{ color: "#dc2626" }}>*</span>
-            </label>
-            <input
-              name="title" type="text" required placeholder="e.g. Roof beam B1"
-              value={fields.title} onChange={(e) => set("title")(e.target.value)}
-              style={{ display: "block", width: "100%", padding: "0.5rem 0.75rem", border: "1px solid #d1d5db", borderRadius: "4px", fontSize: "1rem", marginBottom: "1.25rem", boxSizing: "border-box" }}
-            />
-
-            <label style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, color: "#374151", marginBottom: "0.25rem" }}>
-              Run type <span style={{ color: "#dc2626" }}>*</span>
-            </label>
-            <select
-              name="type" required defaultValue=""
-              onChange={(e) => set("type")(e.target.value as FieldValues["type"])}
-              style={{ display: "block", width: "100%", padding: "0.5rem 0.75rem", border: "1px solid #d1d5db", borderRadius: "4px", fontSize: "1rem", background: "#fff", marginBottom: "1.5rem", boxSizing: "border-box" }}
-            >
-              <option value="" disabled>Select type…</option>
-              <option value="beam">Beam — flexure + shear</option>
-              <option value="column">Column — axial compression</option>
-              <option value="base_plate">Base plate — bearing + thickness</option>
+  return <main className="run-editor">
+    <style>{`
+      .run-editor { color: #e0f2fe; background: #08111f; max-width: 760px; margin: 32px auto; padding: clamp(20px, 4vw, 40px); border: 1px solid #334155; border-radius: 12px; font-family: system-ui, sans-serif; position: relative; }
+      .run-editor a { color: #7dd3fc; }
+      .run-editor p { color: #cbd5e1; line-height: 1.6; }
+      .run-editor form { display: grid; gap: 20px; }
+      .run-editor label { display: grid; gap: 8px; font-size: 15px; font-weight: 500; }
+      .run-editor input, .run-editor select { width: 100%; box-sizing: border-box; padding: 12px; background: #0f1c2f; color: #f0f9ff; border: 1px solid #64748b; border-radius: 6px; font-size: 16px; }
+      .run-editor input:focus-visible, .run-editor select:focus-visible, .run-editor button:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 3px; }
+      .run-editor button { background: #075985; color: white; border: 1px solid #38bdf8; padding: 12px 18px; border-radius: 6px; font: inherit; cursor: pointer; }
+      .run-editor button:disabled { opacity: .6; cursor: wait; }
+      .run-editor [role=alert] { color: #fecaca; background: #451a1a; padding: 12px; border-radius: 6px; overflow-wrap: anywhere; }
+      .run-editor fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 20px; min-width: 0; }
+    `}</style>
+    <Link href={`/projects/${projectId}`}>← {projectName}</Link>
+    <h1>New design run</h1>
+    <p>Project settings: <strong>{codeProfile === "CSA_S16_19" ? "CSA S16-19" : "AISC 360-22"}</strong> · <strong>{unitSystem}</strong>.<br />
+      Code and units are inherited from the project. Enter pre-factored positive load magnitudes.</p>
+    {error && <div role="alert">{error} {failedRunId && <Link href={`/projects/${projectId}/runs/${failedRunId}`}>View saved failed run</Link>}</div>}
+    <form onSubmit={submit}>
+      <fieldset disabled={pending}>
+        <label>Run title<input name="title" required maxLength={200} value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Roof beam B1" /></label>
+        <label>Calculation module<select name="type" required value={type} onChange={e => setType(e.target.value as RunType)}>
+          <option value="" disabled>Select module…</option>
+          <option value="beam">Beam — major-axis flexure and shear</option>
+          <option value="column">Column — axial compression</option>
+          <option value="base_plate">Axial base plate — bearing and required thickness</option>
+        </select></label>
+        {type && <>
+          <label>{type === "base_plate" ? "Column section" : "Steel section"}
+            <select name="selectedSection" required value={section} disabled={sectionsLoading || !!sectionError || !sections.length} onChange={e => setSection(e.target.value)}>
+              <option value="" disabled>{sectionsLoading ? "Loading sections…" : "Select section…"}</option>
+              {sections.map(s => <option key={`${s.standard}:${s.unitSystem}:${s.designation}`} value={s.designation}>{s.designation}</option>)}
             </select>
-
-            {/* ── Step 2: Type-specific inputs ─────────────────── */}
-            {fields.type && (
-              <>
-                <hr style={{ border: "none", borderTop: "1px solid #e5e7eb", margin: "0 0 1.5rem" }} />
-                <p style={{ fontSize: "0.875rem", color: "#6b7280", marginBottom: "1.25rem" }}>
-                  {TYPE_LABELS[fields.type]} · {unitSystem} · {codeProfile.replace("_", " ")}
-                </p>
-
-                {/* ── Beam ── */}
-                {fields.type === "beam" && (
-                  <>
-                    <FactoredDemandField id="factoredMoment" label={momentLabel} unit={momentUnit} value={fields.factoredMoment} onChange={set("factoredMoment")} />
-                    <FactoredDemandField id="factoredShear"  label={shearLabel}  unit={forceUnit}  value={fields.factoredShear}  onChange={set("factoredShear")} />
-                  </>
-                )}
-
-                {/* ── Column ── */}
-                {fields.type === "column" && (
-                  <>
-                    <FactoredDemandField id="factoredCompression" label={compLabel}   unit={forceUnit}  value={fields.factoredCompression} onChange={set("factoredCompression")} />
-                    <PlainField id="effectiveLength" label={`Effective length, KL (${lengthUnit})`} value={fields.effectiveLength} onChange={set("effectiveLength")} />
-                  </>
-                )}
-
-                {/* ── Base plate ── */}
-                {fields.type === "base_plate" && (
-                  <>
-                    <FactoredDemandField id="factoredCompression" label={compLabel} unit={forceUnit} value={fields.factoredCompression} onChange={set("factoredCompression")} />
-                    <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-                      <PlainField id="plateN" label={`Plate N (${lengthUnit})`} value={fields.plateN} onChange={set("plateN")} />
-                      <PlainField id="plateB" label={`Plate B (${lengthUnit})`} value={fields.plateB} onChange={set("plateB")} />
-                    </div>
-                    <PlainField id="concreteStrength" label={`Concrete f'c (${pressUnit})`} value={fields.concreteStrength} onChange={set("concreteStrength")} />
-                    <PlainField id="plateFy" label={`Plate F_y (${pressUnit})`} value={fields.plateFy} onChange={set("plateFy")} />
-                  </>
-                )}
-
-                {/* ── Section (all types) ── */}
-                <div className="section-wrap">
-                  <SectionSearch
-                    label={fields.type === "base_plate" ? "Column section (for d and b_f)" : "Steel section"}
-                    value={fields.selectedSection}
-                    onChange={set("selectedSection")}
-                    onSuggestLightestPassing={() => set("selectedSection")(availableSections[0] ?? "")}
-                  />
-                </div>
-                {/* Hidden input so the value is in FormData */}
-                <input type="hidden" name="selectedSection" value={fields.selectedSection} />
-                <p style={{ fontSize: "0.75rem", color: "#9ca3af", marginTop: "-0.75rem", marginBottom: "1.25rem" }}>
-                  Available: {availableSections.join(", ")}
-                </p>
-              </>
-            )}
-
-            <div style={{ display: "flex", gap: "0.75rem", justifyContent: "flex-end", marginTop: "1rem" }}>
-              <Link
-                href={`/projects/${projectId}`}
-                style={{ padding: "0.5rem 1rem", color: "#374151", border: "1px solid #d1d5db", borderRadius: "4px", fontSize: "0.875rem", textDecoration: "none" }}
-              >
-                Cancel
-              </Link>
-              <button
-                type="submit" disabled={pending || !fields.type}
-                style={{ padding: "0.5rem 1.25rem", background: pending || !fields.type ? "#93c5fd" : "#1d4ed8", color: "#fff", border: "none", borderRadius: "4px", fontSize: "0.875rem", fontWeight: 600, cursor: pending || !fields.type ? "not-allowed" : "pointer" }}
-              >
-                {pending ? "Running…" : "Run calculation"}
-              </button>
-            </div>
-          </form>
-        </div>
-      </main>
-    </>
-  );
-}
-
-// Plain numeric input used for non-factored fields
-function PlainField({ id, label, value, onChange }: { id: string; label: string; value: string; onChange: (v: string) => void }) {
-  return (
-    <div style={{ marginBottom: "1.25rem" }}>
-      <label htmlFor={id} style={{ display: "block", fontSize: "0.875rem", fontWeight: 500, color: "#374151", marginBottom: "0.25rem" }}>
-        {label}
-      </label>
-      <input
-        id={id} name={id} type="number" inputMode="decimal" step="any"
-        value={value} onChange={(e) => onChange(e.target.value)}
-        style={{ display: "block", width: "100%", padding: "0.5rem 0.75rem", border: "1px solid #d1d5db", borderRadius: "4px", fontSize: "1rem", boxSizing: "border-box" }}
-      />
-    </div>
-  );
+          </label>
+          {sectionError && <div role="alert">Section data is unavailable. Your inputs are retained. <button type="button" onClick={() => setRetry(n => n + 1)}>Retry section loading</button></div>}
+          {!sectionsLoading && !sectionError && !sections.length && <p role="alert">No reference sections support this code and unit combination. No calculation will be saved. Available reference data: CSA metric and AISC imperial.</p>}
+          {runFields(type, unitSystem).map(field => <label key={field.key}>{field.label} [{field.unit}]
+            <input name={field.key} type="number" inputMode="decimal" required step="any" min="0" value={fields[field.key] ?? ""}
+              onChange={e => setFields(prev => ({ ...prev, [field.key]: e.target.value }))} />
+          </label>)}
+          <p>{type === "beam" ? "Scope: elastic major-axis flexure and simplified web shear. Lateral-torsional buckling and section classification are not checked." : type === "column" ? "Scope: weak-axis flexural buckling under axial compression. Local/torsional buckling and combined bending are not checked." : "Scope: concentric axial compression only. Reports required thickness; supplied thickness, anchors, welds, uplift and moment are not checked."}</p>
+        </>}
+      </fieldset>
+      <button type="submit" disabled={pending || !type || !section || sectionsLoading || !!sectionError}>{pending ? "Calculating…" : "Run calculation"}</button>
+    </form>
+  </main>;
 }

@@ -55,7 +55,7 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
   if (!session?.user) redirect("/login");
 
   const run = await prisma.designRun.findFirst({
-    where: { id: runId, project: { organizationId: session.user.organizationId } },
+    where: { id: runId, projectId, project: { organizationId: session.user.organizationId } },
     include: { project: true },
   });
 
@@ -66,10 +66,10 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
   const snapshot = result?.displayInputSnapshot ?? {};
   const section = result?.sectionSnapshot ?? {};
   const warnings = result?.warnings ?? [];
-  const codeRefs = result?.codeClauseReferences ?? [];
-  const overallPass = result?.overallPass;
+  const codeRefs = result?.codeReferences ?? [];
+  const overallPass = display.pass;
 
-  const typeLabel: Record<string, string> = { beam: "Beam", column: "Column", basePlate: "Base Plate" };
+  const typeLabel: Record<string, string> = { beam: "Beam", column: "Column", base_plate: "Base Plate" };
 
   return (
     <div style={{ minHeight: "100vh", background: "#050a12", position: "relative" }}>
@@ -88,7 +88,7 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
               {run.title}
             </h1>
             <p style={{ color: "rgba(148,163,184,0.5)", fontSize: 12, fontFamily: "monospace", margin: 0 }}>
-              {typeLabel[run.type] ?? run.type} · {run.project.codeProfile === "AISC_360_22" ? "AISC 360-22" : "CSA S16-19"} · {run.project.unitSystem}
+              {typeLabel[run.type] ?? run.type} · {(result?.codeProfile ?? run.project.codeProfile) === "AISC_360_22" ? "AISC 360-22" : "CSA S16-19"} · {result?.unitSystem ?? run.project.unitSystem}
             </p>
           </div>
           {run.status === "complete" && result && (
@@ -100,7 +100,7 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
               textAlign: "center",
             }}>
               <div style={{ fontSize: 22, fontWeight: 700, color: overallPass ? "#34d399" : "#f87171", fontFamily: "monospace", letterSpacing: "0.05em" }}>
-                {overallPass ? "✓ PASS" : "✗ FAIL"}
+                {overallPass ? (run.type === "base_plate" ? "✓ BEARING PASS" : "✓ CHECKS PASS") : "✗ CHECKS FAIL"}
               </div>
             </div>
           )}
@@ -160,8 +160,8 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
               {run.type === "column" && (
                 <>
                   <Row label="Factored compression (C_f)" value={`${snapshot.factoredCompression?.value ?? "—"} ${snapshot.factoredCompression?.unit ?? ""}`} />
-                  <Row label="Axial capacity φCr" value={`${display.designAxialCapacity ?? "—"} ${snapshot.factoredCompression?.unit ?? ""}`} />
-                  <Row label="Slenderness KL/r" value={display.slendernessRatio?.toFixed(1) ?? "—"} />
+                  <Row label="Axial capacity φCr" value={`${display.factoredResistance ?? "—"} ${snapshot.factoredCompression?.unit ?? ""}`} />
+                  <Row label="Slenderness KL/r" value={display.slenderness?.toFixed(1) ?? "—"} />
                   <Row
                     label="DCR"
                     value={display.demandCapacityRatio != null ? display.demandCapacityRatio.toFixed(3) : "—"}
@@ -172,13 +172,13 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
               {run.type === "base_plate" && (
                 <>
                   <Row label="Factored compression (P_u)" value={`${snapshot.factoredCompression?.value ?? "—"} ${snapshot.factoredCompression?.unit ?? ""}`} />
-                  <Row label="Required bearing area" value={display.requiredBearingArea ?? "—"} />
+                  <Row label="Required bearing area" value={`${display.a1Required ?? "—"} ${result?.unitSystem === "metric" ? "mm²" : "in²"}`} />
                   <Row label="Governing cantilever" value={display.governingCantilever ?? "—"} />
-                  <Row label="Required plate thickness t_p" value={display.requiredPlateThickness ?? "—"} />
+                  <Row label="Required plate thickness t_p" value={`${display.tpRequired ?? "—"} ${result?.unitSystem === "metric" ? "mm" : "in"}`} />
                   <Row
                     label="Bearing DCR"
-                    value={display.demandCapacityRatio != null ? display.demandCapacityRatio.toFixed(3) : "—"}
-                    highlight={display.demandCapacityRatio != null ? (display.demandCapacityRatio <= 1 ? "pass" : "fail") : null}
+                    value={display.bearingDCR != null ? display.bearingDCR.toFixed(3) : "—"}
+                    highlight={display.bearingDCR != null ? (display.bearingDCR <= 1 ? "pass" : "fail") : null}
                   />
                 </>
               )}
@@ -188,14 +188,18 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
             {section.designation && (
               <Card title="SECTION PROPERTIES USED">
                 <Row label="Designation" value={section.designation} />
-                {section.A && <Row label="Area A" value={`${section.A} ${run.project.unitSystem === "metric" ? "mm²" : "in²"}`} />}
-                {section.d && <Row label="Depth d" value={`${section.d} ${run.project.unitSystem === "metric" ? "mm" : "in"}`} />}
-                {section.bf && <Row label="Flange width bf" value={`${section.bf} ${run.project.unitSystem === "metric" ? "mm" : "in"}`} />}
-                {section.Sx && <Row label="Elastic modulus Sx" value={`${section.Sx} ${run.project.unitSystem === "metric" ? "×10³ mm³" : "in³"}`} />}
-                {section.ry && <Row label="Weak-axis ry" value={`${section.ry} ${run.project.unitSystem === "metric" ? "mm" : "in"}`} />}
-                {section.Fy && <Row label="Yield strength Fy" value={`${section.Fy} ${run.project.unitSystem === "metric" ? "MPa" : "ksi"}`} />}
+                {section.A && <Row label="Area A" value={`${section.A} ${(result?.unitSystem ?? run.project.unitSystem) === "metric" ? "mm²" : "in²"}`} />}
+                {section.d && <Row label="Depth d" value={`${section.d} ${(result?.unitSystem ?? run.project.unitSystem) === "metric" ? "mm" : "in"}`} />}
+                {section.bf && <Row label="Flange width bf" value={`${section.bf} ${(result?.unitSystem ?? run.project.unitSystem) === "metric" ? "mm" : "in"}`} />}
+                {section.Sx && <Row label="Elastic section modulus Sx" value={`${section.Sx} ${(result?.unitSystem ?? run.project.unitSystem) === "metric" ? "mm³" : "in³"}`} />}
+                {section.ry && <Row label="Weak-axis ry" value={`${section.ry} ${(result?.unitSystem ?? run.project.unitSystem) === "metric" ? "mm" : "in"}`} />}
+                {section.Fy && <Row label="Yield strength Fy" value={`${section.Fy} ${(result?.unitSystem ?? run.project.unitSystem) === "metric" ? "MPa" : "ksi"}`} />}
               </Card>
             )}
+
+            <Card title="CALCULATION DETAILS">
+              {(result.calculationLines ?? []).map((line: string, i: number) => <p key={i} style={{ color: "#cbd5e1", lineHeight: 1.6, overflowWrap: "anywhere" }}>{line}</p>)}
+            </Card>
 
             {/* Code clauses */}
             {codeRefs.length > 0 && (

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { handleCreateDesignRun, type HandlerDeps, type DesignRunRow, type ProjectRow } from "../../src/app/api/design-runs/handler";
 import { designRunRequestSchema } from "../../src/app/api/design-runs/schema";
+import { buildRunInput } from "../../src/domain/runForm";
 import { EngineError } from "../../src/engine/engineError";
 
 // ── fixtures ────────────────────────────────────────────────────────────────
@@ -123,7 +124,7 @@ describe("handleCreateDesignRun", () => {
   it("column happy path returns a complete design run", async () => {
     const fakeColumnResult = { pass: true, moduleType: "column", demandCapacityRatio: 0.5 };
     const result = await handleCreateDesignRun(
-      { ...validBeamBody, type: "column" },
+      { ...validBeamBody, type: "column", inputJson: buildRunInput("column", "metric", "CSA_S16_19", { factoredCompression: "500", effectiveLength: "3000" }, "W310x60") },
       fakeSession,
       makeDeps({ runColumnEngine: async () => fakeColumnResult }),
     );
@@ -137,7 +138,7 @@ describe("handleCreateDesignRun", () => {
   it("base_plate happy path returns a complete design run", async () => {
     const fakeBpResult = { pass: true, moduleType: "base_plate", tpRequired: 32.1 };
     const result = await handleCreateDesignRun(
-      { ...validBeamBody, type: "base_plate" },
+      { ...validBeamBody, type: "base_plate", inputJson: buildRunInput("base_plate", "metric", "CSA_S16_19", { factoredCompression: "500", plateN: "450", plateB: "400", concreteStrength: "28", plateFy: "250" }, "W310x60") },
       fakeSession,
       makeDeps({ runBasePlateEngine: async () => fakeBpResult }),
     );

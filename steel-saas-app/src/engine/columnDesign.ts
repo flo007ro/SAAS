@@ -1,3 +1,4 @@
+import { assertCalculationInputs, ensureFiniteResult } from "./inputGuards";
 import type { CodeProfile } from "../domain/codeProfiles";
 import { validateFactoredDemandInput } from "../domain/demandInputHandling";
 import type { DesignResult } from "../domain/resultContract";
@@ -50,6 +51,11 @@ function aisc360FactoredResistance(area: number, fy: number, fe: number): {
 // ── main function ─────────────────────────────────────────────────────────────
 
 export function calculateColumnDesign(input: ColumnDesignInput): DesignResult {
+  const metric = input.unitSystem === "metric";
+  assertCalculationInputs(input.unitSystem, input.section, [
+    ["Factored compression", input.factoredCompression, metric ? "kN" : "kip"],
+    ["Effective length", input.effectiveLength, metric ? "mm" : "in"],
+  ]);
   const demandChecks = [
     validateFactoredDemandInput({ key: "factoredCompression", ...input.factoredCompression }),
   ];
@@ -105,7 +111,7 @@ export function calculateColumnDesign(input: ColumnDesignInput): DesignResult {
   const demandCapacityRatio = input.factoredCompression.value / factoredResistance;
   const pass = warnings.length === 0 && demandCapacityRatio <= 1;
 
-  return {
+  return ensureFiniteResult({
     runId: input.runId,
     moduleType: "column",
     engineVersion: "engine-0.1.0",
@@ -134,7 +140,7 @@ export function calculateColumnDesign(input: ColumnDesignInput): DesignResult {
       factoredResistance: Number(factoredResistance.toFixed(1)),
       demandCapacityRatio: Number(demandCapacityRatio.toFixed(3)),
     },
-    calculationLines,
+    calculationLines: ["Scope: weak-axis flexural buckling under axial compression only; local/torsional buckling and combined bending are not checked.", ...calculationLines],
     warnings,
     codeReferences: [codeClause],
     sectionSnapshot: {
@@ -149,5 +155,5 @@ export function calculateColumnDesign(input: ColumnDesignInput): DesignResult {
       Fy: input.section.fy,
       sectionDbVersion: input.section.sectionDbVersion,
     },
-  };
+  });
 }

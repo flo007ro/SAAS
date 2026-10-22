@@ -40,7 +40,10 @@ export async function createRunAction(
   const codeProfile = formData.get("codeProfile") as string;
 
   const us = unitSystem as "metric" | "imperial";
-  const num = (k: string) => parseFloat(formData.get(k) as string) || 0;
+  const num = (k: string) => {
+    const raw = formData.get(k);
+    return typeof raw === "string" && raw.trim() ? Number(raw) : NaN;
+  };
   const str = (k: string) => (formData.get(k) as string) ?? "";
 
   const momentUnit  = us === "metric" ? "kN-m" : "kip-ft";
@@ -97,7 +100,7 @@ export async function createRunAction(
     findProject: async (pid, orgId): Promise<FindProjectResult> => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const row = await (prisma as any).project.findUnique({ where: { id: pid } });
-      if (!row) return { found: false };
+      if (!row || row.archivedAt) return { found: false };
       return {
         found: true,
         belongsToOrg: row.organizationId === orgId,
