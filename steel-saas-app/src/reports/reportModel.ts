@@ -15,7 +15,7 @@ export type ReportModel = {
 
 export function buildReportModelFromResultJson(result: DesignResult): ReportModel {
   return {
-    title: `${result.moduleType} design calculation`,
+    title: result.moduleType === "brace" ? "Brace preliminary member checks — engineering review required" : `${result.moduleType} design calculation`,
     inputRows: Object.values(result.displayInputSnapshot).map((entry) => ({
       label: entry.label,
       value: `${entry.value} ${entry.unit}`,

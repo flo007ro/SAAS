@@ -195,4 +195,15 @@ describe("generatePdfReport", () => {
     expect(text).toContain("W12x40");
     expect(text).toContain("AISC 360-22 Section E3");
   }, 20_000);
+  it("brace member PDF never turns a calculated-check pass into design approval", async () => {
+    const result: DesignResult = { ...beamResult, moduleType: "brace",
+      displayResults: { pass: true, designStatus: "requires_engineering_review", tensionDCR: .5, seismicReviewRequired: true },
+      warnings: ["SEISMIC REVIEW REQUIRED: system qualification is not evaluated."],
+    };
+    const text = extractPdfText(await generatePdfReport(result, meta));
+    expect(text).toContain("ENGINEERING REVIEW REQUIRED");
+    expect(text).toContain("SEISMIC REVIEW REQUIRED");
+    expect(text).not.toMatch(/\bPASS\b/);
+  }, 20_000);
+
 });

@@ -4,11 +4,12 @@
   "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:enable-brace": "prisma db execute --file prisma/sql/add-brace-type.sql --schema prisma/schema.prisma"
   },
   "dependencies": {
     "@auth/prisma-adapter": "^2.7.4",

@@ -8,7 +8,7 @@ const displayValueSchema = z.object({
 });
 
 export const designRunRequestSchema = z.object({
-  type: z.enum(["beam", "column", "base_plate"]),
+  type: z.enum(["beam", "column", "base_plate", "brace"]),
   projectId: z.string().min(1),
   title: z.string().trim().min(1).max(200),
   inputJson: z.object({

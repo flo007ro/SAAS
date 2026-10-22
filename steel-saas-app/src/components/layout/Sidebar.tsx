@@ -9,13 +9,15 @@ type Project = { id: string; name: string; codeProfile: string; runs?: DesignRun
 const typeIcon: Record<string, string> = {
   beam: "⌇",
   column: "▮",
-  basePlate: "▬",
+  base_plate: "▬",
+  brace: "↗",
 };
 
 const typeLabel: Record<string, string> = {
   beam: "Beam",
   column: "Column",
-  basePlate: "Base Plate",
+  base_plate: "Base Plate",
+  brace: "Brace",
 };
 
 function ProjectItem({ project }: { project: Project }) {

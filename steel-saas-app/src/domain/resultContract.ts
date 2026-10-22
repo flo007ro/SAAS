@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-export const moduleTypeSchema = z.enum(["beam", "column", "base_plate"]);
+export const moduleTypeSchema = z.enum(["beam", "column", "base_plate", "brace"]);
 export const codeProfileSchema = z.enum(["AISC_360_22", "CSA_S16_19"]);
 export const unitSystemSchema = z.enum(["metric", "imperial"]);
 
@@ -20,6 +20,7 @@ export const sectionSnapshotSchema = z.object({
   tf:               z.number(), // flange thickness (mm or in)
   tw:               z.number(), // web thickness (mm or in)
   Sx:               z.number(), // elastic section modulus — strong axis (mm³ or in³)
+  rx:               z.number().optional(),
   ry:               z.number(), // weak-axis radius of gyration (mm or in)
   Fy:               z.number(), // yield strength (MPa or ksi)
   sectionDbVersion: z.string(),

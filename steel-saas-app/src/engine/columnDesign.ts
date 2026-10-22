@@ -16,12 +16,12 @@ export type ColumnDesignInput = {
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-function elasticModulus(unitSystem: UnitSystem): number {
+export function elasticModulus(unitSystem: UnitSystem): number {
   return unitSystem === "metric" ? 200_000 : 29_000; // MPa or ksi
 }
 
 // CSA S16-19 Clause 13.3.1 — Cr = φAgFy(1 + λ_n^2n)^(-1/n), n = 1.34 for W sections
-function csaS16FactoredResistance(area: number, fy: number, fe: number): {
+export function csaS16FactoredResistance(area: number, fy: number, fe: number): {
   cr: number;
   fcr: number;
   lambdaN: number;
@@ -34,7 +34,7 @@ function csaS16FactoredResistance(area: number, fy: number, fe: number): {
 }
 
 // AISC 360-22 Section E3 — inelastic (E3-2) or elastic (E3-3) buckling
-function aisc360FactoredResistance(area: number, fy: number, fe: number): {
+export function aisc360FactoredResistance(area: number, fy: number, fe: number): {
   phiPn: number;
   fcr: number;
   bucklingMode: "inelastic" | "elastic";

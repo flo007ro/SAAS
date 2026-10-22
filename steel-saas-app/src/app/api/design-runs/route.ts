@@ -1,3 +1,5 @@
+import { runBraceEngine } from "../../../engine/braceEngineRunner";
+import { braceStorageAvailable } from "../../../lib/braceAvailability";
 import { NextResponse } from "next/server";
 import { auth } from "../../../lib/auth";
 import { prisma } from "../../../lib/prisma";
@@ -40,6 +42,8 @@ export async function POST(req: Request) {
     parsed.data,
     { userId: session.user.userId, organizationId: session.user.organizationId },
     {
+      braceEnabled: parsed.data.type === "brace" ? await braceStorageAvailable() : false,
+      runBraceEngine: async (id, project, input) => runBraceEngine(id, project, input),
       findProject: async (projectId, organizationId): Promise<FindProjectResult> => {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const row = await (prisma as any).project.findUnique({ where: { id: projectId } });

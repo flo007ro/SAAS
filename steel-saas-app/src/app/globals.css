@@ -201,3 +201,15 @@ body { margin: 0; }
 @media(max-width: 800px) { .profile-explorer-grid { grid-template-columns: 1fr; } .profile-intro h1 br { display: none; } .profile-intro > p { max-width: none; } }
 @media(max-width: 420px) { .profile-dimensions { grid-template-columns: repeat(2, 1fr); } .profile-viewer-heading { padding: 18px; } }
 @media(prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; } }
+
+.modules-page { max-width: 1200px; margin: 0 auto; padding: clamp(24px,5vw,64px) clamp(20px,4vw,48px); }
+.modules-page h1 { font-size: clamp(28px,4vw,44px); font-weight: 500; letter-spacing: -.035em; }
+.modules-lead { max-width: 760px; color: #b9c8d1; margin-bottom: 32px; }
+.modules-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; }
+.module-card { background: rgba(22,28,34,.94); border: 1px solid #a7becc33; border-radius: 12px; padding: 28px; }
+.module-card h2 { font-size: 23px; font-weight: 500; }
+.module-card h3 { font-size: 13px; font-weight: 600; color: #d9e3e9; margin-top: 24px; }
+.module-card p, .module-card li { color: #b8c8d1; font-size: 14px; }
+.module-card li { margin-bottom: 8px; }
+.module-card .steel-btn { display: inline-block; text-decoration: none; margin-top: 12px; }
+@media(max-width: 760px) { .modules-grid { grid-template-columns: 1fr; } }

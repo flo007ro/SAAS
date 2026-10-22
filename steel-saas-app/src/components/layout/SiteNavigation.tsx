@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const links = [ ["/dashboard", "Overview"], ["/projects", "Projects"], ["/profiles", "Steel profiles"], ["/about", "About"] ];
+const links = [ ["/dashboard", "Overview"], ["/projects", "Projects"], ["/profiles", "Steel profiles"], ["/modules", "Modules"], ["/about", "About"] ];
 export default function SiteNavigation() {
   const pathname = usePathname();
   return <header className="site-header">

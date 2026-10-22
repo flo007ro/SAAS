@@ -155,6 +155,7 @@ type Props = { result: DesignResult; meta: ReportMeta };
 export function PdfReport({ result, meta }: Props) {
   const moduleLabel = result.moduleType.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
   const overallPass = result.displayResults.pass as boolean;
+  const braceChecksMet = result.displayResults.calculatedChecksMet ?? result.displayResults.pass;
 
   // split section designation entries from demand inputs
   const inputEntries = Object.values(result.displayInputSnapshot).filter(
@@ -176,7 +177,7 @@ export function PdfReport({ result, meta }: Props) {
         {/* ── 1. Header ───────────────────────────────────────────────── */}
         <View style={s.section}>
           <Text style={s.reportTitle}>Structural Steel Design Calculation</Text>
-          <Text style={s.moduleLabel}>{moduleLabel} Design</Text>
+          <Text style={s.moduleLabel}>{moduleLabel}{result.moduleType === "brace" ? " — preliminary member checks" : " Design"}</Text>
           <View style={s.grid}>
             <View style={s.gridCell}>
               <Text><Text style={s.gridLabel}>Project:</Text> {meta.projectName}</Text>
@@ -231,15 +232,16 @@ export function PdfReport({ result, meta }: Props) {
         <View style={s.section}>
           <SectionHeader title="Governing Checks" />
           <View style={s.badgeRow}>
-            <Text style={overallPass ? s.badgePass : s.badgeFail}>
-              {overallPass ? "✓  PASS" : "✗  FAIL"}
+            <Text style={result.moduleType === "brace" ? s.warning : overallPass ? s.badgePass : s.badgeFail}>
+              {result.moduleType === "brace" ? "ENGINEERING REVIEW REQUIRED" : overallPass ? "✓  PASS" : "✗  FAIL"}
             </Text>
           </View>
+          {result.moduleType === "brace" && <Text>Calculated strength/slenderness screens: {braceChecksMet ? "met within stated scope" : "not met"}. This is not overall design approval.</Text>}
           {resultEntries.map(([key, value], i) => {
             const isRatio = key.toLowerCase().includes("ratio") || key.toLowerCase().includes("dcr");
             const numVal = typeof value === "number" ? value : null;
             const passProp =
-              isRatio && numVal !== null ? numVal <= 1 :
+              result.moduleType === "brace" ? undefined : isRatio && numVal !== null ? numVal <= 1 :
               typeof value === "boolean" ? (value as boolean) :
               undefined;
             return (

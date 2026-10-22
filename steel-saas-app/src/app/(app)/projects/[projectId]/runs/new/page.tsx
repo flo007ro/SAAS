@@ -1,3 +1,4 @@
+import { braceStorageAvailable } from "@/lib/braceAvailability";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
@@ -12,6 +13,7 @@ export default async function NewRunPage({ params }: { params: Promise<{ project
     select: { id: true, name: true, codeProfile: true, unitSystem: true },
   });
   if (!project) notFound();
+  const braceEnabled = await braceStorageAvailable();
   return <RunForm key={`${project.id}:${project.codeProfile}:${project.unitSystem}`} projectId={project.id} projectName={project.name}
-    codeProfile={project.codeProfile} unitSystem={project.unitSystem} />;
+    codeProfile={project.codeProfile} unitSystem={project.unitSystem} braceEnabled={braceEnabled} />;
 }

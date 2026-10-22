@@ -69,7 +69,7 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
   const codeRefs = result?.codeReferences ?? [];
   const overallPass = display.pass;
 
-  const typeLabel: Record<string, string> = { beam: "Beam", column: "Column", base_plate: "Base Plate" };
+  const typeLabel: Record<string, string> = { beam: "Beam", column: "Column", base_plate: "Base Plate", brace: "Brace member checks" };
 
   return (
     <div style={{ minHeight: "100vh", background: "transparent", position: "relative" }}>
@@ -92,14 +92,14 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
           </div>
           {run.status === "complete" && result && (
             <div style={{
-              background: overallPass ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)",
-              border: `1px solid ${overallPass ? "rgba(52,211,153,0.3)" : "rgba(248,113,113,0.3)"}`,
+              background: run.type === "brace" ? "rgba(251,191,36,0.08)" : overallPass ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)",
+              border: `1px solid ${run.type === "brace" ? "rgba(251,191,36,0.3)" : overallPass ? "rgba(52,211,153,0.3)" : "rgba(248,113,113,0.3)"}`,
               borderRadius: 10,
               padding: "12px 20px",
               textAlign: "center",
             }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: overallPass ? "#34d399" : "#f87171", fontFamily: "monospace", letterSpacing: "0.05em" }}>
-                {overallPass ? (run.type === "base_plate" ? "✓ BEARING PASS" : "✓ CHECKS PASS") : "✗ CHECKS FAIL"}
+              <div style={{ fontSize: 22, fontWeight: 700, color: run.type === "brace" ? "#fbbf24" : overallPass ? "#34d399" : "#f87171", fontFamily: "monospace", letterSpacing: "0.05em" }}>
+                {run.type === "brace" ? "REVIEW REQUIRED" : overallPass ? (run.type === "base_plate" ? "✓ BEARING PASS" : "✓ CHECKS PASS") : "✗ CHECKS FAIL"}
               </div>
             </div>
           )}
@@ -137,6 +137,20 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
 
             {/* Demand / Capacity */}
             <Card title="DEMAND / CAPACITY">
+              {run.type === "brace" && <>
+                <Row label="Assessment" value="Preliminary member checks; engineering review required" />
+                <Row label="Calculated strength/slenderness screens" value={(display.calculatedChecksMet ?? display.pass) ? "Met within stated scope" : "Not met"} />
+                <Row label="Factored tension" value={`${snapshot.factoredTension?.value ?? "—"} ${snapshot.factoredTension?.unit ?? ""}`} />
+                <Row label="Gross yielding resistance" value={`${display.grossYieldResistance ?? "—"} ${snapshot.factoredTension?.unit ?? ""}`} />
+                <Row label="Effective-net-area rupture resistance" value={`${display.netRuptureResistance ?? "—"} ${snapshot.factoredTension?.unit ?? ""}`} />
+                <Row label="Tension DCR" value={String(display.tensionDCR ?? "—")} />
+                <Row label="Factored compression" value={`${snapshot.factoredCompression?.value ?? "—"} ${snapshot.factoredCompression?.unit ?? ""}`} />
+                <Row label="Flexural buckling resistance" value={`${display.compressionResistance ?? "—"} ${snapshot.factoredCompression?.unit ?? ""}`} />
+                <Row label="Compression DCR" value={String(display.compressionDCR ?? "—")} />
+                <Row label="Governing buckling axis" value={String(display.governingCompressionAxis ?? "—")} />
+                <Row label="Strong / weak KL/r" value={`${display.strongAxisKLr ?? "—"} / ${display.weakAxisKLr ?? "—"}`} />
+                <Row label="Seismic qualification" value="Not evaluated" />
+              </>}
               {run.type === "beam" && (
                 <>
                   <Row label="Factored moment (M_f)" value={`${snapshot.factoredMoment?.value ?? "—"} ${snapshot.factoredMoment?.unit ?? ""}`} />

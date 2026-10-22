@@ -9,13 +9,14 @@ import type { CodeProfile } from "@/domain/codeProfiles";
 import type { UnitSystem } from "@/domain/units";
 import { buildRunInput, parseSectionOptions, runFields, type RunType, type SectionOption } from "@/domain/runForm";
 
-export default function RunForm({ projectId, projectName, unitSystem, codeProfile }: {
-  projectId: string; projectName: string; unitSystem: UnitSystem; codeProfile: CodeProfile;
+export default function RunForm({ projectId, projectName, unitSystem, codeProfile, braceEnabled = false }: {
+  projectId: string; projectName: string; unitSystem: UnitSystem; codeProfile: CodeProfile; braceEnabled?: boolean;
 }) {
   const router = useRouter();
   const [type, setType] = useState<RunType | "">("");
   const [title, setTitle] = useState("");
-  const [fields, setFields] = useState<Record<string, string>>({});
+  const [fields, setFields] = useState<Record<string, string>>({ factoredTension: "0", factoredCompression: "0", tensionSlendernessLimit: "300", compressionSlendernessLimit: "200" });
+  const [seismicDemand, setSeismicDemand] = useState("ordinary");
   const [section, setSection] = useState("");
   const [sections, setSections] = useState<SectionOption[]>([]);
   const [sectionError, setSectionError] = useState("");
@@ -58,6 +59,7 @@ export default function RunForm({ projectId, projectName, unitSystem, codeProfil
     if (!title.trim()) { setError("Enter a run title."); return; }
     try {
       const inputJson = buildRunInput(type, unitSystem, codeProfile, fields, section);
+      if (type === "brace") inputJson.displayValues.seismicDemand = { label: "Brace demand category", value: seismicDemand, unit: "category" };
       submitting.current = true;
       setPending(true);
       const response = await fetch("/api/design-runs", {
@@ -108,7 +110,9 @@ export default function RunForm({ projectId, projectName, unitSystem, codeProfil
           <option value="beam">Beam — major-axis flexure and shear</option>
           <option value="column">Column — axial compression</option>
           <option value="base_plate">Axial base plate — bearing and required thickness</option>
+          <option value="brace" disabled={!braceEnabled}>Brace — tension and compression member checks{!braceEnabled ? " (database activation pending)" : ""}</option>
         </select></label>
+        {!braceEnabled && <p className="profile-note">Brace member checks are prepared; database activation is pending. Existing calculation modules are available.</p>}
         {type && <>
           <label>{type === "base_plate" ? "Column section" : "Steel section"}
             <select name="selectedSection" required value={section} disabled={sectionsLoading || !!sectionError || !sections.length} onChange={e => setSection(e.target.value)}>
@@ -118,12 +122,18 @@ export default function RunForm({ projectId, projectName, unitSystem, codeProfil
           </label>
           {sectionError && <div role="alert">Section data is unavailable. Your inputs are retained. <button type="button" onClick={() => setRetry(n => n + 1)}>Retry section loading</button></div>}
           {!sectionsLoading && !sectionError && !sections.length && <p role="alert">No reference sections support this code and unit combination. No calculation will be saved. Available reference data: CSA metric and AISC imperial.</p>}
+          {type === "brace" && <>
+            <div role="note" style={{ borderLeft: "2px solid #b9a278", paddingLeft: 16 }}><strong>Preliminary member checks</strong><p>Tension and compression are separate envelope demands. Enter zero for an unapplied load sense; at least one must be positive. Net area and shear lag require an engineer's connection assessment. Local/torsional buckling and seismic qualification remain unassessed.</p></div>
+            {selectedProfile && <p>Reference gross area Ag: {selectedProfile.area} {unitSystem === "metric" ? "mm²" : "in²"} · Reference yield strength Fy: {selectedProfile.fy} {unitSystem === "metric" ? "MPa" : "ksi"}</p>}
+            <label>Brace demand category<select name="seismicDemand" value={seismicDemand} onChange={e => setSeismicDemand(e.target.value)}><option value="ordinary">Ordinary member screening</option><option value="seismic">Seismic brace — separate system qualification required</option></select></label>
+            {seismicDemand === "seismic" && <p role="status">Seismic review is required. This calculation does not establish seismic ductility or connection overstrength compliance.</p>}
+          </>}
           {selectedProfile && <ProfileViewer profile={selectedProfile} standard={codeProfile === "AISC_360_22" ? "AISC · W-shape" : "CSA · W-shape"} />}
           {runFields(type, unitSystem).map(field => <label key={field.key}>{field.label} [{field.unit}]
-            <input name={field.key} type="number" inputMode="decimal" required step="any" min="0" value={fields[field.key] ?? ""}
+            <input name={field.key} type="number" inputMode="decimal" required step="any" min="0" max={field.key === "shearLagFactor" ? 1 : field.key === "netArea" ? selectedProfile?.area : undefined} value={fields[field.key] ?? ""}
               onChange={e => setFields(prev => ({ ...prev, [field.key]: e.target.value }))} />
           </label>)}
-          <p>{type === "beam" ? "Scope: elastic major-axis flexure and simplified web shear. Lateral-torsional buckling and section classification are not checked." : type === "column" ? "Scope: weak-axis flexural buckling under axial compression. Local/torsional buckling and combined bending are not checked." : "Scope: concentric axial compression only. Reports required thickness; supplied thickness, anchors, welds, uplift and moment are not checked."}</p>
+          <p>{type === "brace" ? "Scope: gross yielding, effective-net-area rupture and flexural buckling about both axes. Calculated checks are not a complete brace or connection design." : type === "beam" ? "Scope: elastic major-axis flexure and simplified web shear. Lateral-torsional buckling and section classification are not checked." : type === "column" ? "Scope: weak-axis flexural buckling under axial compression. Local/torsional buckling and combined bending are not checked." : "Scope: concentric axial compression only. Reports required thickness; supplied thickness, anchors, welds, uplift and moment are not checked."}</p>
         </>}
       </fieldset>
       <button type="submit" disabled={pending || !type || !section || sectionsLoading || !!sectionError}>{pending ? "Calculating…" : "Run calculation"}</button>

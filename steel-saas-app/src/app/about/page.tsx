@@ -122,12 +122,13 @@ export default function AboutPage() {
         </div>
 
         {/* Coming next */}
+        <Link href="/modules" style={{ color: "#b2c6d0", display: "inline-block", marginBottom: 20 }}>Explore module scope and brace member checks →</Link>
         <div style={{ marginBottom: 56 }}>
-          <div style={{ fontSize: 13, color: "rgba(251,191,36,0.65)", fontFamily: "monospace", letterSpacing: "0.1em", marginBottom: 20 }}>COMING NEXT</div>
+          <div style={{ fontSize: 13, color: "rgba(251,191,36,0.65)", fontFamily: "monospace", letterSpacing: "0.1em", marginBottom: 20 }}>IN DEVELOPMENT</div>
           <Card>
             <FeatureRow icon="⌁" title="Connection design" desc="Bolted and welded shear connections, bearing and slip-critical checks per AISC Chapter J and CSA Clause 13." />
             <FeatureRow icon="⊞" title="Composite beam design" desc="Partial and full composite action, stud layout, and transformed section properties." />
-            <FeatureRow icon="↗" title="Brace design" desc="Axial tension and compression members, slenderness limits, and seismic ductility flags." />
+            <FeatureRow icon="↗" title="Brace design" desc="Preliminary AISC/CSA tension and compression member checks, project slenderness screening, and seismic review flags. Connection and system qualification are not included." />
             <FeatureRow icon="▬" title="Moment base plates" desc="Combined axial and moment demand, anchor bolt tension, and bearing stress distribution." />
           </Card>
         </div>

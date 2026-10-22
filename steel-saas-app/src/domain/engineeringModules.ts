@@ -1,0 +1,18 @@
+export const engineeringModules = [
+  { id: "brace", title: "Brace design", icon: "↗", status: "Preliminary member checks implemented",
+    scope: "Separate axial tension/compression cases, gross yielding, effective-net-area rupture, two-axis flexural buckling and project slenderness screens for AISC and CSA reference members.",
+    inputs: ["Reference W-shape and material strengths", "Net area and engineer-selected shear-lag factor", "Member length and effective lengths about both axes", "Tension/compression demands and seismic review category"],
+    remaining: "Independent benchmark review, local/torsional buckling, connection/block shear, fatigue, eccentricity, and seismic system qualification." },
+  { id: "connection", title: "Connection design", icon: "⌁", status: "Planned — no calculator yet",
+    scope: "Bolted and welded shear connections, bearing and slip-critical checks. Start with concentric single-plate shear, then add eccentric groups and slip resistance.",
+    inputs: ["Plate/connected-member geometry and Fy/Fu", "Bolt specification, diameter, threads, hole type and layout", "Weld process, electrode, size and effective length", "Faying surface, pretension and applicable slip demand basis"],
+    remaining: "Verified AISC Chapter J and applicable CSA connection provisions, bolt/weld reference tables, limit-state benchmarks and connection geometry validation. Clause numbers must be confirmed per check, not assumed from a general roadmap label." },
+  { id: "composite_beam", title: "Composite beam design", icon: "⊞", status: "Planned — no calculator yet",
+    scope: "Begin with elastic transformed properties, then full/partial composite strength, stud requirements and construction-stage checks.",
+    inputs: ["Steel section and material grade", "Slab thickness, effective width and concrete strength", "Deck geometry/direction and shoring/construction stage", "Stud specification, layout, strengths and load stages"],
+    remaining: "Verified composite provisions, effective-width rules, connector resistance and minimum interaction, construction-stage strength/deflection and independently checked examples." },
+  { id: "moment_base_plate", title: "Moment base plates", icon: "▬", status: "Planned — no calculator yet",
+    scope: "Begin with uniaxial axial/moment contact equilibrium, then anchor tension, plate flexure and anchor/concrete limit states.",
+    inputs: ["Signed axial load, moment and shear load cases", "Plate dimensions/thickness and pedestal geometry", "Anchor pattern, grade, embedment and edge distances", "Concrete strength, grout and contact assumptions"],
+    remaining: "Compression-only contact solver with explicit no-equilibrium cases, validated anchor force distribution, anchor steel/concrete failures, applicable concrete standards and design-guide benchmarks." },
+] as const;

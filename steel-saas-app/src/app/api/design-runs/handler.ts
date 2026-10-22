@@ -38,6 +38,8 @@ export type HandlerDeps = {
     id: string,
     patch: { status: DesignRunStatus; resultJson?: unknown; errorCode?: string },
   ) => Promise<DesignRunRow>;
+  braceEnabled?: boolean;
+  runBraceEngine?: (runId: string, project: ProjectRow, inputJson: unknown) => Promise<unknown>;
   runBeamEngine: (runId: string, project: ProjectRow, inputJson: unknown) => Promise<unknown>;
   runColumnEngine: (runId: string, project: ProjectRow, inputJson: unknown) => Promise<unknown>;
   runBasePlateEngine: (runId: string, project: ProjectRow, inputJson: unknown) => Promise<unknown>;
@@ -61,6 +63,9 @@ export async function handleCreateDesignRun(
   }
 
   const { project } = projectResult;
+  if (body.type === "brace" && (!deps.braceEnabled || !deps.runBraceEngine)) {
+    return { ok: false, httpStatus: 501, errorCode: "BRACE_STORAGE_NOT_ENABLED", error: "Brace runs are not enabled on this database yet. Existing modules remain available." };
+  }
   try {
     validateRunInput(body.type, project, body.inputJson);
   } catch (error) {
@@ -80,7 +85,7 @@ export async function handleCreateDesignRun(
 
   try {
     const engineFn =
-      body.type === "beam"
+      body.type === "brace" ? deps.runBraceEngine! : body.type === "beam"
         ? deps.runBeamEngine
         : body.type === "column"
           ? deps.runColumnEngine

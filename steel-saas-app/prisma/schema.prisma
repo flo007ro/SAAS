@@ -29,6 +29,7 @@ enum DesignRunType {
   beam
   column
   base_plate
+  brace
 }
 
 model Organization {
