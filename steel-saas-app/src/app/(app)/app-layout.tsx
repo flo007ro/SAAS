@@ -2,7 +2,6 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Sidebar from "@/components/layout/Sidebar";
-import MeshBackground from "@/components/MeshBackground";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const session = await auth();
@@ -28,8 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   }));
 
   return (
-    <div style={{ minHeight: "100vh", background: "#050a12", position: "relative" }}>
-      <MeshBackground />
+    <div style={{ minHeight: "100vh", background: "transparent", position: "relative" }}>
       <Sidebar projects={sidebarProjects} />
       <main style={{
         marginLeft: 240,

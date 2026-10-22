@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import ProfileViewer from "@/components/profiles/ProfileViewer";
+import { sectionSeedV1 } from "@/domain/sections/sectionSeed.v1";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { CodeProfile } from "@/domain/codeProfiles";
@@ -23,6 +25,7 @@ export default function RunForm({ projectId, projectName, unitSystem, codeProfil
   const [failedRunId, setFailedRunId] = useState("");
   const [pending, setPending] = useState(false);
   const submitting = useRef(false);
+  const selectedProfile = sectionSeedV1.find(s => s.designation === section && s.standard === codeProfile && s.unitSystem === unitSystem);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -80,14 +83,14 @@ export default function RunForm({ projectId, projectName, unitSystem, codeProfil
 
   return <main className="run-editor">
     <style>{`
-      .run-editor { color: #e0f2fe; background: #08111f; max-width: 760px; margin: 32px auto; padding: clamp(20px, 4vw, 40px); border: 1px solid #334155; border-radius: 12px; font-family: system-ui, sans-serif; position: relative; }
-      .run-editor a { color: #7dd3fc; }
+      .run-editor { color: #e8edf0; background: rgba(22,28,34,.95); max-width: 760px; margin: 32px auto; padding: clamp(20px, 4vw, 40px); border: 1px solid #334155; border-radius: 12px; font-family: system-ui, sans-serif; position: relative; }
+      .run-editor a { color: #bacdd7; }
       .run-editor p { color: #cbd5e1; line-height: 1.6; }
       .run-editor form { display: grid; gap: 20px; }
       .run-editor label { display: grid; gap: 8px; font-size: 15px; font-weight: 500; }
-      .run-editor input, .run-editor select { width: 100%; box-sizing: border-box; padding: 12px; background: #0f1c2f; color: #f0f9ff; border: 1px solid #64748b; border-radius: 6px; font-size: 16px; }
-      .run-editor input:focus-visible, .run-editor select:focus-visible, .run-editor button:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 3px; }
-      .run-editor button { background: #075985; color: white; border: 1px solid #38bdf8; padding: 12px 18px; border-radius: 6px; font: inherit; cursor: pointer; }
+      .run-editor input, .run-editor select { width: 100%; box-sizing: border-box; padding: 12px; background: #1a232c; color: #f0f9ff; border: 1px solid #64748b; border-radius: 6px; font-size: 16px; }
+      .run-editor input:focus-visible, .run-editor select:focus-visible, .run-editor button:focus-visible { outline: 2px solid #bacdd7; outline-offset: 3px; }
+      .run-editor button { background: #344c5c; color: white; border: 1px solid #b2c6d0; padding: 12px 18px; border-radius: 6px; font: inherit; cursor: pointer; }
       .run-editor button:disabled { opacity: .6; cursor: wait; }
       .run-editor [role=alert] { color: #fecaca; background: #451a1a; padding: 12px; border-radius: 6px; overflow-wrap: anywhere; }
       .run-editor fieldset { border: 0; padding: 0; margin: 0; display: grid; gap: 20px; min-width: 0; }
@@ -115,6 +118,7 @@ export default function RunForm({ projectId, projectName, unitSystem, codeProfil
           </label>
           {sectionError && <div role="alert">Section data is unavailable. Your inputs are retained. <button type="button" onClick={() => setRetry(n => n + 1)}>Retry section loading</button></div>}
           {!sectionsLoading && !sectionError && !sections.length && <p role="alert">No reference sections support this code and unit combination. No calculation will be saved. Available reference data: CSA metric and AISC imperial.</p>}
+          {selectedProfile && <ProfileViewer profile={selectedProfile} standard={codeProfile === "AISC_360_22" ? "AISC · W-shape" : "CSA · W-shape"} />}
           {runFields(type, unitSystem).map(field => <label key={field.key}>{field.label} [{field.unit}]
             <input name={field.key} type="number" inputMode="decimal" required step="any" min="0" value={fields[field.key] ?? ""}
               onChange={e => setFields(prev => ({ ...prev, [field.key]: e.target.value }))} />

@@ -1,8 +1,8 @@
+import ProfileViewer from "@/components/profiles/ProfileViewer";
 import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import MeshBackground from "@/components/MeshBackground";
 
 function Row({ label, value, highlight }: { label: string; value: string; highlight?: "pass" | "fail" | null }) {
   return (
@@ -11,14 +11,14 @@ function Row({ label, value, highlight }: { label: string; value: string; highli
       justifyContent: "space-between",
       alignItems: "center",
       padding: "10px 0",
-      borderBottom: "1px solid rgba(56,189,248,0.06)",
+      borderBottom: "1px solid rgba(148,174,191,0.06)",
     }}>
       <span style={{ color: "rgba(148,163,184,0.7)", fontSize: 13 }}>{label}</span>
       <span style={{
         fontSize: 13,
         fontFamily: "monospace",
         fontWeight: highlight ? 600 : 400,
-        color: highlight === "pass" ? "#34d399" : highlight === "fail" ? "#f87171" : "#e0f2fe",
+        color: highlight === "pass" ? "#34d399" : highlight === "fail" ? "#f87171" : "#e8edf0",
       }}>
         {value}
         {highlight === "pass" && <span style={{ marginLeft: 6, fontSize: 11 }}>✓</span>}
@@ -31,8 +31,8 @@ function Row({ label, value, highlight }: { label: string; value: string; highli
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div style={{
-      background: "rgba(8,15,26,0.75)",
-      border: "1px solid rgba(56,189,248,0.1)",
+      background: "rgba(22,28,34,0.75)",
+      border: "1px solid rgba(148,174,191,0.1)",
       borderRadius: 12,
       padding: "24px",
       backdropFilter: "blur(12px)",
@@ -40,8 +40,8 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
       position: "relative",
       overflow: "hidden",
     }}>
-      <div style={{ position: "absolute", top: 0, left: "10%", right: "10%", height: 1, background: "linear-gradient(90deg, transparent, rgba(56,189,248,0.2), transparent)" }} />
-      <div style={{ fontSize: 11, color: "rgba(56,189,248,0.5)", fontFamily: "monospace", letterSpacing: "0.1em", marginBottom: 16 }}>
+      <div style={{ position: "absolute", top: 0, left: "10%", right: "10%", height: 1, background: "linear-gradient(90deg, transparent, rgba(148,174,191,0.2), transparent)" }} />
+      <div style={{ fontSize: 11, color: "rgba(148,174,191,0.5)", fontFamily: "monospace", letterSpacing: "0.1em", marginBottom: 16 }}>
         {title}
       </div>
       {children}
@@ -72,19 +72,18 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
   const typeLabel: Record<string, string> = { beam: "Beam", column: "Column", base_plate: "Base Plate" };
 
   return (
-    <div style={{ minHeight: "100vh", background: "#050a12", position: "relative" }}>
-      <MeshBackground />
+    <div style={{ minHeight: "100vh", background: "transparent", position: "relative" }}>
       <div style={{ position: "relative", zIndex: 10, padding: "48px 56px", maxWidth: 860 }}>
 
         {/* Back */}
-        <Link href={`/projects/${run.projectId}`} style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "rgba(56,189,248,0.5)", fontSize: 12, fontFamily: "monospace", textDecoration: "none", marginBottom: 32 }}>
+        <Link href={`/projects/${run.projectId}`} style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "rgba(148,174,191,0.5)", fontSize: 12, fontFamily: "monospace", textDecoration: "none", marginBottom: 32 }}>
           ← {run.project.name}
         </Link>
 
         {/* Header */}
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 36, gap: 16, flexWrap: "wrap" }}>
           <div>
-            <h1 style={{ fontSize: 28, fontWeight: 600, color: "#e0f2fe", margin: "0 0 8px", letterSpacing: "-0.01em" }}>
+            <h1 style={{ fontSize: 28, fontWeight: 600, color: "#e8edf0", margin: "0 0 8px", letterSpacing: "-0.01em" }}>
               {run.title}
             </h1>
             <p style={{ color: "rgba(148,163,184,0.5)", fontSize: 12, fontFamily: "monospace", margin: 0 }}>
@@ -184,6 +183,11 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
               )}
             </Card>
 
+            {section.designation && <div style={{ marginBottom: 16 }}><ProfileViewer profile={{
+              designation: section.designation, unitSystem: result.unitSystem,
+              depth: section.d, flangeWidth: section.bf, webThickness: section.tw, flangeThickness: section.tf,
+            }} standard={result.codeProfile === "AISC_360_22" ? "AISC · W-shape" : "CSA · W-shape"} /></div>}
+
             {/* Section properties */}
             {section.designation && (
               <Card title="SECTION PROPERTIES USED">
@@ -217,11 +221,11 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{
-                  background: "linear-gradient(135deg, rgba(56,189,248,0.15), rgba(56,189,248,0.08))",
-                  border: "1px solid rgba(56,189,248,0.35)",
+                  background: "linear-gradient(135deg, rgba(148,174,191,0.15), rgba(148,174,191,0.08))",
+                  border: "1px solid rgba(148,174,191,0.35)",
                   borderRadius: 8,
                   padding: "11px 24px",
-                  color: "#38bdf8",
+                  color: "#b2c6d0",
                   textDecoration: "none",
                   fontSize: 12,
                   fontWeight: 600,
@@ -236,7 +240,7 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
         )}
 
         {/* Metadata footer */}
-        <div style={{ marginTop: 40, paddingTop: 20, borderTop: "1px solid rgba(56,189,248,0.06)" }}>
+        <div style={{ marginTop: 40, paddingTop: 20, borderTop: "1px solid rgba(148,174,191,0.06)" }}>
           <p style={{ color: "rgba(100,116,139,0.4)", fontSize: 11, fontFamily: "monospace", margin: "0 0 4px" }}>
             Engine: {result?.engineVersion ?? run.engineVersion} · Section DB: {result?.sectionDbVersion ?? "—"} · {new Date(run.createdAt).toLocaleString()}
           </p>

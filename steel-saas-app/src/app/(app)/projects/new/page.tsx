@@ -1,14 +1,13 @@
 "use client";
-import MeshBackground from "@/components/MeshBackground";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 const inputStyle = {
   background: "rgba(255,255,255,0.04)",
-  border: "1px solid rgba(56,189,248,0.15)",
+  border: "1px solid rgba(148,174,191,0.15)",
   borderRadius: 8,
   padding: "10px 14px",
-  color: "#e0f2fe",
+  color: "#e8edf0",
   fontSize: 14,
   outline: "none",
   width: "100%",
@@ -60,19 +59,18 @@ export default function NewProjectPage() {
   }
 
   return (
-    <div style={{ minHeight: "100vh", background: "#050a12", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
-      <MeshBackground />
+    <div style={{ minHeight: "100vh", background: "transparent", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ position: "relative", zIndex: 10, width: "100%", maxWidth: 520, margin: "0 20px" }}>
 
         {/* Back */}
-        <a href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "rgba(56,189,248,0.5)", fontSize: 12, fontFamily: "monospace", textDecoration: "none", marginBottom: 24 }}>
+        <a href="/dashboard" style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "rgba(148,174,191,0.5)", fontSize: 12, fontFamily: "monospace", textDecoration: "none", marginBottom: 24 }}>
           ← Dashboard
         </a>
 
         {/* Card */}
         <div style={{
-          background: "rgba(8,15,26,0.85)",
-          border: "1px solid rgba(56,189,248,0.15)",
+          background: "rgba(22,28,34,0.85)",
+          border: "1px solid rgba(148,174,191,0.15)",
           borderRadius: 16,
           padding: "40px 36px",
           backdropFilter: "blur(20px)",
@@ -80,10 +78,10 @@ export default function NewProjectPage() {
           position: "relative",
           overflow: "hidden",
         }}>
-          <div style={{ position: "absolute", top: 0, left: "20%", right: "20%", height: 1, background: "linear-gradient(90deg, transparent, rgba(56,189,248,0.5), transparent)" }} />
+          <div style={{ position: "absolute", top: 0, left: "20%", right: "20%", height: 1, background: "linear-gradient(90deg, transparent, rgba(148,174,191,0.5), transparent)" }} />
 
           <div style={{ marginBottom: 32 }}>
-            <h1 style={{ fontSize: 22, fontWeight: 600, color: "#e0f2fe", margin: "0 0 6px", letterSpacing: "-0.01em" }}>
+            <h1 style={{ fontSize: 22, fontWeight: 600, color: "#e8edf0", margin: "0 0 6px", letterSpacing: "-0.01em" }}>
               New project
             </h1>
             <p style={{ color: "rgba(148,163,184,0.5)", fontSize: 12, fontFamily: "monospace", margin: 0 }}>
@@ -102,22 +100,22 @@ export default function NewProjectPage() {
             <div>
               <label style={labelStyle}>PROJECT NAME <span style={{ color: "#f87171" }}>*</span></label>
               <input name="name" required placeholder="e.g. Office Tower Frame" style={inputStyle}
-                onFocus={e => (e.target.style.borderColor = "rgba(56,189,248,0.45)")}
-                onBlur={e => (e.target.style.borderColor = "rgba(56,189,248,0.15)")} />
+                onFocus={e => (e.target.style.borderColor = "rgba(148,174,191,0.45)")}
+                onBlur={e => (e.target.style.borderColor = "rgba(148,174,191,0.15)")} />
             </div>
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
               <div>
                 <label style={labelStyle}>CLIENT <span style={{ color: "rgba(100,116,139,0.5)" }}>(optional)</span></label>
                 <input name="client" placeholder="e.g. City of Toronto" style={inputStyle}
-                  onFocus={e => (e.target.style.borderColor = "rgba(56,189,248,0.45)")}
-                  onBlur={e => (e.target.style.borderColor = "rgba(56,189,248,0.15)")} />
+                  onFocus={e => (e.target.style.borderColor = "rgba(148,174,191,0.45)")}
+                  onBlur={e => (e.target.style.borderColor = "rgba(148,174,191,0.15)")} />
               </div>
               <div>
                 <label style={labelStyle}>LOCATION <span style={{ color: "rgba(100,116,139,0.5)" }}>(optional)</span></label>
                 <input name="location" placeholder="e.g. Toronto, ON" style={inputStyle}
-                  onFocus={e => (e.target.style.borderColor = "rgba(56,189,248,0.45)")}
-                  onBlur={e => (e.target.style.borderColor = "rgba(56,189,248,0.15)")} />
+                  onFocus={e => (e.target.style.borderColor = "rgba(148,174,191,0.45)")}
+                  onBlur={e => (e.target.style.borderColor = "rgba(148,174,191,0.15)")} />
               </div>
             </div>
 
@@ -143,7 +141,7 @@ export default function NewProjectPage() {
               <a href="/dashboard" style={{
                 flex: 1,
                 background: "transparent",
-                border: "1px solid rgba(56,189,248,0.15)",
+                border: "1px solid rgba(148,174,191,0.15)",
                 borderRadius: 8,
                 padding: "11px 0",
                 color: "rgba(148,163,184,0.6)",
@@ -157,11 +155,11 @@ export default function NewProjectPage() {
               </a>
               <button type="submit" disabled={loading} style={{
                 flex: 2,
-                background: loading ? "rgba(56,189,248,0.06)" : "linear-gradient(135deg, rgba(56,189,248,0.18), rgba(56,189,248,0.08))",
-                border: "1px solid rgba(56,189,248,0.35)",
+                background: loading ? "rgba(148,174,191,0.06)" : "linear-gradient(135deg, rgba(148,174,191,0.18), rgba(148,174,191,0.08))",
+                border: "1px solid rgba(148,174,191,0.35)",
                 borderRadius: 8,
                 padding: "11px 0",
-                color: "#38bdf8",
+                color: "#b2c6d0",
                 fontSize: 13,
                 fontWeight: 600,
                 letterSpacing: "0.1em",

@@ -5,15 +5,15 @@ import { prisma } from "../../../lib/prisma";
 const styles = {
   page:      { padding: "2rem", fontFamily: "system-ui, sans-serif", maxWidth: "800px", margin: "0 auto" } as const,
   header:    { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" } as const,
-  h1:        { margin: 0, fontSize: "1.5rem", fontWeight: 700, color: "#111827" } as const,
-  btn:       { padding: "0.5rem 1rem", background: "#1d4ed8", color: "#fff", border: "none", borderRadius: "4px", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", textDecoration: "none" } as const,
-  card:      { display: "block", background: "#fff", border: "1px solid #e5e7eb", borderRadius: "6px", padding: "1rem 1.25rem", marginBottom: "0.75rem", textDecoration: "none", color: "inherit" } as const,
-  cardTitle: { fontWeight: 600, color: "#111827", marginBottom: "0.25rem" } as const,
-  cardMeta:  { fontSize: "0.8125rem", color: "#6b7280" } as const,
-  empty:     { color: "#6b7280", fontSize: "0.9375rem", marginTop: "2rem" } as const,
+  h1:        { margin: 0, fontSize: "1.5rem", fontWeight: 700, color: "#e8edf0" } as const,
+  btn:       { padding: "0.5rem 1rem", background: "#496273", color: "#fff", border: "none", borderRadius: "4px", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", textDecoration: "none" } as const,
+  card:      { display: "block", background: "rgba(22,28,34,.94)", border: "1px solid #3d4d59", borderRadius: "6px", padding: "1rem 1.25rem", marginBottom: "0.75rem", textDecoration: "none", color: "inherit" } as const,
+  cardTitle: { fontWeight: 600, color: "#e8edf0", marginBottom: "0.25rem" } as const,
+  cardMeta:  { fontSize: "0.8125rem", color: "#b1c1cb" } as const,
+  empty:     { color: "#b1c1cb", fontSize: "0.9375rem", marginTop: "2rem" } as const,
   banner:    { display: "flex", alignItems: "center", justifyContent: "space-between", gap: "1rem", background: "#fffbeb", border: "1px solid #fde68a", borderRadius: "6px", padding: "0.875rem 1.25rem", marginBottom: "1.5rem", fontSize: "0.875rem", color: "#92400e" } as const,
   bannerBtn: { padding: "0.4rem 1rem", background: "#d97706", color: "#fff", border: "none", borderRadius: "4px", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" as const } as const,
-  manageBtn: { padding: "0.4rem 1rem", background: "transparent", color: "#6b7280", border: "1px solid #d1d5db", borderRadius: "4px", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" as const } as const,
+  manageBtn: { padding: "0.4rem 1rem", background: "transparent", color: "#b1c1cb", border: "1px solid #526572", borderRadius: "4px", fontSize: "0.875rem", fontWeight: 600, cursor: "pointer", whiteSpace: "nowrap" as const } as const,
 };
 
 export default async function ProjectsPage({ searchParams }: { searchParams: Promise<{ subscribed?: string }> }) {

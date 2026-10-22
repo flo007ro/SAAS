@@ -13,10 +13,14 @@ export default function MeshBackgroundAlt() {
 
     let animId: number;
     let t = 0;
+    let lastFrame = 0;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
     const resize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
+      const ratio = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = window.innerWidth * ratio;
+      canvas.height = window.innerHeight * ratio;
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
     };
     resize();
     window.addEventListener("resize", resize);
@@ -38,14 +42,22 @@ export default function MeshBackgroundAlt() {
       return pts;
     };
 
-    const draw = () => {
-      const W = canvas.width;
-      const H = canvas.height;
+    const draw = (now = 0) => {
+      if (document.hidden) return;
+      if (!reducedMotion.matches && now - lastFrame < 32) {
+        animId = requestAnimationFrame(draw);
+        return;
+      }
+      const delta = lastFrame ? Math.min((now - lastFrame) / 1000, 0.1) : 0;
+      lastFrame = now;
+      if (!reducedMotion.matches) t += delta * 0.36;
+      const W = window.innerWidth;
+      const H = window.innerHeight;
       const mx = mouseRef.current.x;
       const my = mouseRef.current.y;
 
       ctx.clearRect(0, 0, W, H);
-      ctx.fillStyle = "#060c18";
+      ctx.fillStyle = "#10151b";
       ctx.fillRect(0, 0, W, H);
 
       const hexW = HEX_SIZE * Math.sqrt(3);
@@ -75,7 +87,7 @@ export default function MeshBackgroundAlt() {
           for (let i = 1; i < 6; i++) ctx.lineTo(pts[i].x, pts[i].y);
           ctx.closePath();
           const hexAlpha = 0.04 + breathe * 0.06 + cursorInfluence * 0.08;
-          ctx.strokeStyle = `rgba(56,189,248,${hexAlpha})`;
+          ctx.strokeStyle = `rgba(139,160,174,${hexAlpha})`;
           ctx.lineWidth = 0.6;
           ctx.stroke();
 
@@ -83,7 +95,7 @@ export default function MeshBackgroundAlt() {
           ctx.beginPath();
           ctx.arc(cx, cy, 1.2 + breathe * 1.2, 0, Math.PI * 2);
           const dotAlpha = 0.12 + breathe * 0.4 + cursorInfluence * 0.5;
-          ctx.fillStyle = `rgba(125,211,252,${dotAlpha})`;
+          ctx.fillStyle = `rgba(180,197,207,${dotAlpha})`;
           ctx.fill();
 
           // Cursor hex fill
@@ -92,7 +104,7 @@ export default function MeshBackgroundAlt() {
             ctx.moveTo(pts[0].x, pts[0].y);
             for (let i = 1; i < 6; i++) ctx.lineTo(pts[i].x, pts[i].y);
             ctx.closePath();
-            ctx.fillStyle = `rgba(56,189,248,${cursorInfluence * 0.06})`;
+            ctx.fillStyle = `rgba(139,160,174,${cursorInfluence * 0.06})`;
             ctx.fill();
           }
         }
@@ -101,17 +113,17 @@ export default function MeshBackgroundAlt() {
       // Diagonal scan line
       const scanX = ((t * 120) % (W + H)) - H;
       const grad = ctx.createLinearGradient(scanX, 0, scanX + 80, 80);
-      grad.addColorStop(0, "rgba(56,189,248,0)");
-      grad.addColorStop(0.5, "rgba(56,189,248,0.04)");
-      grad.addColorStop(1, "rgba(56,189,248,0)");
+      grad.addColorStop(0, "rgba(139,160,174,0)");
+      grad.addColorStop(0.5, "rgba(139,160,174,0.04)");
+      grad.addColorStop(1, "rgba(139,160,174,0)");
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, W, H);
 
       // Cursor glow
       if (mx > 0) {
         const cg = ctx.createRadialGradient(mx, my, 0, mx, my, 180);
-        cg.addColorStop(0, "rgba(56,189,248,0.1)");
-        cg.addColorStop(1, "rgba(56,189,248,0)");
+        cg.addColorStop(0, "rgba(139,160,174,0.1)");
+        cg.addColorStop(1, "rgba(139,160,174,0)");
         ctx.fillStyle = cg;
         ctx.beginPath();
         ctx.arc(mx, my, 180, 0, Math.PI * 2);
@@ -121,20 +133,30 @@ export default function MeshBackgroundAlt() {
       // Corner accent blobs
       [{ x: 0, y: 0 }, { x: W, y: H }].forEach(({ x, y }) => {
         const bg = ctx.createRadialGradient(x, y, 0, x, y, 300);
-        bg.addColorStop(0, "rgba(14,165,233,0.07)");
-        bg.addColorStop(1, "rgba(14,165,233,0)");
+        bg.addColorStop(0, "rgba(123,145,160,0.07)");
+        bg.addColorStop(1, "rgba(123,145,160,0)");
         ctx.fillStyle = bg;
         ctx.beginPath();
         ctx.arc(x, y, 300, 0, Math.PI * 2);
         ctx.fill();
       });
 
-      t += 0.006;
-      animId = requestAnimationFrame(draw);
+      if (!reducedMotion.matches) animId = requestAnimationFrame(draw);
     };
 
+    const restart = () => {
+      cancelAnimationFrame(animId);
+      lastFrame = 0;
+      draw();
+    };
+    reducedMotion.addEventListener("change", restart);
+    document.addEventListener("visibilitychange", restart);
+    window.addEventListener("resize", restart);
     draw();
     return () => {
+      reducedMotion.removeEventListener("change", restart);
+      document.removeEventListener("visibilitychange", restart);
+      window.removeEventListener("resize", restart);
       cancelAnimationFrame(animId);
       window.removeEventListener("resize", resize);
       window.removeEventListener("mousemove", onMove);
@@ -143,7 +165,7 @@ export default function MeshBackgroundAlt() {
   }, []);
 
   return (
-    <canvas ref={canvasRef} style={{
+    <canvas aria-hidden="true" data-background="hexagonal" ref={canvasRef} style={{
       position: "fixed", inset: 0, width: "100%", height: "100%",
       zIndex: 0, pointerEvents: "none",
     }} />
