@@ -9,6 +9,14 @@
     "test:watch": "vitest",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "db:generate": "prisma generate",
+    "db:validate": "prisma validate",
+    "db:migrate": "prisma migrate dev",
+    "db:deploy": "prisma migrate deploy",
+    "db:status": "prisma migrate status",
+    "db:setup": "npm run db:deploy && npm run db:generate",
+    "db:seed": "prisma db seed",
+    "db:import-sections": "tsx prisma/importSections.ts",
     "db:enable-brace": "prisma db execute --file prisma/sql/add-brace-type.sql --schema prisma/schema.prisma"
   },
   "dependencies": {

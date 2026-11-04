@@ -3,6 +3,7 @@ import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { demandLabel, implementedChecksVerdict, resultWarnings } from "../../../../../../domain/resultPresentation";
 
 function Row({ label, value, highlight }: { label: string; value: string; highlight?: "pass" | "fail" | null }) {
   return (
@@ -65,7 +66,8 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
   const display = result?.displayResults ?? {};
   const snapshot = result?.displayInputSnapshot ?? {};
   const section = result?.sectionSnapshot ?? {};
-  const warnings = result?.warnings ?? [];
+  const warnings = resultWarnings(run.type, result?.warnings ?? []);
+  const codeProfile = result?.codeProfile ?? run.project.codeProfile;
   const codeRefs = result?.codeReferences ?? [];
   const overallPass = display.pass;
 
@@ -98,8 +100,8 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
               padding: "12px 20px",
               textAlign: "center",
             }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: run.type === "brace" ? "#fbbf24" : overallPass ? "#34d399" : "#f87171", fontFamily: "monospace", letterSpacing: "0.05em" }}>
-                {run.type === "brace" ? "REVIEW REQUIRED" : overallPass ? (run.type === "base_plate" ? "✓ BEARING PASS" : "✓ CHECKS PASS") : "✗ CHECKS FAIL"}
+              <div style={{ fontSize: 14, fontWeight: 700, color: run.type === "brace" ? "#fbbf24" : overallPass ? "#34d399" : "#f87171", fontFamily: "monospace", overflowWrap: "anywhere" }}>
+                {run.type === "brace" ? "REVIEW REQUIRED" : implementedChecksVerdict(overallPass)}
               </div>
             </div>
           )}
@@ -153,7 +155,7 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
               </>}
               {run.type === "beam" && (
                 <>
-                  <Row label="Factored moment (M_f)" value={`${snapshot.factoredMoment?.value ?? "—"} ${snapshot.factoredMoment?.unit ?? ""}`} />
+                  <Row label={demandLabel("factoredMoment", codeProfile)} value={`${snapshot.factoredMoment?.value ?? "—"} ${snapshot.factoredMoment?.unit ?? ""}`} />
                   <Row label="Moment capacity φMn" value={`${display.designMomentCapacity ?? "—"} ${snapshot.factoredMoment?.unit ?? ""}`} />
                   <Row
                     label="Moment DCR"
@@ -161,7 +163,7 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
                     highlight={display.momentDCR != null ? (display.momentDCR <= 1 ? "pass" : "fail") : null}
                   />
                   <div style={{ margin: "8px 0" }} />
-                  <Row label="Factored shear (V_f)" value={`${snapshot.factoredShear?.value ?? "—"} ${snapshot.factoredShear?.unit ?? ""}`} />
+                  <Row label={demandLabel("factoredShear", codeProfile)} value={`${snapshot.factoredShear?.value ?? "—"} ${snapshot.factoredShear?.unit ?? ""}`} />
                   <Row label="Shear capacity φVn" value={`${display.designShearCapacity ?? "—"} ${snapshot.factoredShear?.unit ?? ""}`} />
                   <Row
                     label="Shear DCR"
@@ -172,7 +174,7 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
               )}
               {run.type === "column" && (
                 <>
-                  <Row label="Factored compression (C_f)" value={`${snapshot.factoredCompression?.value ?? "—"} ${snapshot.factoredCompression?.unit ?? ""}`} />
+                  <Row label={demandLabel("factoredCompression", codeProfile)} value={`${snapshot.factoredCompression?.value ?? "—"} ${snapshot.factoredCompression?.unit ?? ""}`} />
                   <Row label="Axial capacity φCr" value={`${display.factoredResistance ?? "—"} ${snapshot.factoredCompression?.unit ?? ""}`} />
                   <Row label="Slenderness KL/r" value={display.slenderness?.toFixed(1) ?? "—"} />
                   <Row
@@ -184,7 +186,7 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
               )}
               {run.type === "base_plate" && (
                 <>
-                  <Row label="Factored compression (P_u)" value={`${snapshot.factoredCompression?.value ?? "—"} ${snapshot.factoredCompression?.unit ?? ""}`} />
+                  <Row label={demandLabel("factoredCompression", codeProfile)} value={`${snapshot.factoredCompression?.value ?? "—"} ${snapshot.factoredCompression?.unit ?? ""}`} />
                   <Row label="Required bearing area" value={`${display.a1Required ?? "—"} ${result?.unitSystem === "metric" ? "mm²" : "in²"}`} />
                   <Row label="Governing cantilever" value={display.governingCantilever ?? "—"} />
                   <Row label="Required plate thickness t_p" value={`${display.tpRequired ?? "—"} ${result?.unitSystem === "metric" ? "mm" : "in"}`} />

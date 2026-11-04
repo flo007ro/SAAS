@@ -7,7 +7,7 @@
  *   3. Project       "Test Project"           CSA S16-19 · metric
  *
  * Run: npx prisma db seed
- * (or: npm run db:seed  after adding that script to package.json)
+ * (or: npm run db:seed; requires ALLOW_DEMO_SEED=true on a dev database)
  *
  * Does NOT create design runs or reports — those are generated through
  * the application flow after login.
@@ -16,10 +16,12 @@
 import { PrismaClient } from "@prisma/client";
 import { hashPassword } from "../src/lib/passwordHash";
 import { sectionSeedV1 } from "../src/domain/sections/sectionSeed.v1";
+import { assertDevelopmentSeed } from "./seedSafety";
 
 const prisma = new PrismaClient();
 
 async function main() {
+  assertDevelopmentSeed(process.env);
   // ── 1. Organization ────────────────────────────────────────────────────────
   let org = await prisma.organization.findFirst({
     where: { name: "Beta Firm" },
@@ -109,6 +111,6 @@ async function main() {
 main()
   .catch((err) => {
     console.error("Seed failed:", err);
-    process.exit(1);
+    process.exitCode = 1;
   })
   .finally(() => prisma.$disconnect());

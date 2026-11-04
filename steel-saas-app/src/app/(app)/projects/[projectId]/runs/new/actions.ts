@@ -1,6 +1,8 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { demandLabel } from "../../../../../../domain/resultPresentation";
 import { auth } from "../../../../../../lib/auth";
 import { prisma } from "../../../../../../lib/prisma";
 import { enforceSubscription } from "../../../../../../lib/subscriptionGuard";
@@ -18,13 +20,6 @@ import type { UnitSystem } from "../../../../../../domain/units";
 import type { DesignRunStatus } from "../../../../../../domain/designRunStatus";
 
 export type RunFormState = { error?: string } | null;
-
-// Factored demand labels (engine validates these include "Factored")
-const LABEL = {
-  moment:      { metric: "Factored moment, M_f",      imperial: "Factored moment, M_u"      },
-  shear:       { metric: "Factored shear, V_f",       imperial: "Factored shear, V_u"       },
-  compression: { metric: "Factored compression, C_f", imperial: "Factored compression, P_u" },
-} as const;
 
 export async function createRunAction(
   _prev: RunFormState,
@@ -55,19 +50,19 @@ export async function createRunAction(
 
   if (type === "beam") {
     displayValues = {
-      factoredMoment:  { label: LABEL.moment[us],      value: num("factoredMoment"),      unit: momentUnit },
-      factoredShear:   { label: LABEL.shear[us],       value: num("factoredShear"),       unit: forceUnit  },
+      factoredMoment:  { label: demandLabel("factoredMoment", codeProfile), value: num("factoredMoment"), unit: momentUnit },
+      factoredShear:   { label: demandLabel("factoredShear", codeProfile), value: num("factoredShear"), unit: forceUnit },
       selectedSection: { label: "Selected section",     value: str("selectedSection"),     unit: "designation" },
     };
   } else if (type === "column") {
     displayValues = {
-      factoredCompression: { label: LABEL.compression[us], value: num("factoredCompression"), unit: forceUnit  },
+      factoredCompression: { label: demandLabel("factoredCompression", codeProfile), value: num("factoredCompression"), unit: forceUnit },
       effectiveLength:     { label: "Effective length, KL", value: num("effectiveLength"),     unit: lengthUnit },
       selectedSection:     { label: "Selected section",     value: str("selectedSection"),     unit: "designation" },
     };
   } else if (type === "base_plate") {
     displayValues = {
-      factoredCompression: { label: LABEL.compression[us],       value: num("factoredCompression"), unit: forceUnit  },
+      factoredCompression: { label: demandLabel("factoredCompression", codeProfile), value: num("factoredCompression"), unit: forceUnit },
       plateN:              { label: "Plate dimension N",          value: num("plateN"),              unit: lengthUnit },
       plateB:              { label: "Plate dimension B",          value: num("plateB"),              unit: lengthUnit },
       concreteStrength:    { label: "Concrete strength, f’c", value: num("concreteStrength"),   unit: pressUnit  },
@@ -129,5 +124,8 @@ export async function createRunAction(
 
   if (!result.ok) return { error: result.error };
   const run = result.designRun as { id: string };
+  revalidatePath(`/projects/${projectId}`);
+  revalidatePath("/dashboard");
+  revalidatePath("/projects");
   redirect(`/projects/${projectId}/runs/${run.id}`);
 }

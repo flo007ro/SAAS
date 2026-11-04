@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { auth } from "../../../../lib/auth";
 import { prisma } from "../../../../lib/prisma";
 import { handleCreateProject } from "../../../api/projects/handler";
@@ -51,5 +52,7 @@ export async function createProjectAction(
   }
 
   const project = result.data as { id: string };
+  revalidatePath("/dashboard");
+  revalidatePath("/projects");
   redirect(`/projects/${project.id}`);
 }

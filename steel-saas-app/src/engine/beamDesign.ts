@@ -1,4 +1,5 @@
 import { assertCalculationInputs, ensureFiniteResult } from "./inputGuards";
+import { demandLabel, RESULT_SCOPE, resultWarnings } from "../domain/resultPresentation";
 import type { CodeProfile } from "../domain/codeProfiles";
 import { validateFactoredDemandInput } from "../domain/demandInputHandling";
 import type { DesignResult } from "../domain/resultContract";
@@ -77,8 +78,8 @@ export function calculateBeamDesign(input: BeamDesignInput): DesignResult {
     unitSystem: input.unitSystem,
     demandMode: "user_factored_demands",
     displayInputSnapshot: {
-      factoredMoment: input.factoredMoment,
-      factoredShear: input.factoredShear,
+      factoredMoment: { ...input.factoredMoment, label: demandLabel("factoredMoment", input.codeProfile) },
+      factoredShear: { ...input.factoredShear, label: demandLabel("factoredShear", input.codeProfile) },
       selectedSection: {
         label: "Selected section",
         value: input.section.designation,
@@ -104,18 +105,18 @@ export function calculateBeamDesign(input: BeamDesignInput): DesignResult {
       designShearCapacity: Number(phiVnDisplay.toFixed(1)),
     },
     calculationLines: [
-      "Scope: elastic major-axis flexure and simplified shear only; section classification, lateral-torsional buckling and deflection are not checked.",
+      RESULT_SCOPE.beam!,
       // Moment
-      `${input.factoredMoment.label} = ${input.factoredMoment.value} ${input.factoredMoment.unit}`,
+      `${demandLabel("factoredMoment", input.codeProfile)} = ${input.factoredMoment.value} ${input.factoredMoment.unit}`,
       `M_r = φ·Fy·Sx = ${phiMn.toFixed(1)} ${momentCapUnit}  [φ=${phi}, Fy=${fy} ${stressUnit}, Sx=${input.section.sx}]`,
       `Moment DCR = ${momentDCR.toFixed(3)}`,
       // Shear
-      `${input.factoredShear.label} = ${input.factoredShear.value} ${input.factoredShear.unit}`,
+      `${demandLabel("factoredShear", input.codeProfile)} = ${input.factoredShear.value} ${input.factoredShear.unit}`,
       `A_w = (d−2t_f)·t_w = ${aw.toFixed(input.unitSystem === "metric" ? 0 : 3)} ${areaUnit}`,
       `V_r = φv·${shearCoeff}·Fy·A_w = ${phiVnDisplay.toFixed(1)} ${shearCapUnit}  [φv=${phiV}]`,
       `Shear DCR = ${shearDCR.toFixed(3)}`,
     ],
-    warnings,
+    warnings: resultWarnings("beam", warnings),
     codeReferences: [codeClause],
     sectionSnapshot: {
       designation: input.section.designation,

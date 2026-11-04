@@ -1,4 +1,5 @@
 import { assertCalculationInputs, ensureFiniteResult } from "./inputGuards";
+import { demandLabel, RESULT_SCOPE, resultWarnings } from "../domain/resultPresentation";
 import type { CodeProfile } from "../domain/codeProfiles";
 import { validateFactoredDemandInput } from "../domain/demandInputHandling";
 import type { DesignResult } from "../domain/resultContract";
@@ -120,7 +121,7 @@ export function calculateColumnDesign(input: ColumnDesignInput): DesignResult {
     unitSystem: input.unitSystem,
     demandMode: "user_factored_demands",
     displayInputSnapshot: {
-      factoredCompression: input.factoredCompression,
+      factoredCompression: { ...input.factoredCompression, label: demandLabel("factoredCompression", input.codeProfile) },
       effectiveLength: input.effectiveLength,
       selectedSection: {
         label: "Selected section",
@@ -140,8 +141,8 @@ export function calculateColumnDesign(input: ColumnDesignInput): DesignResult {
       factoredResistance: Number(factoredResistance.toFixed(1)),
       demandCapacityRatio: Number(demandCapacityRatio.toFixed(3)),
     },
-    calculationLines: ["Scope: weak-axis flexural buckling under axial compression only; local/torsional buckling and combined bending are not checked.", ...calculationLines],
-    warnings,
+    calculationLines: [RESULT_SCOPE.column!, ...calculationLines],
+    warnings: resultWarnings("column", warnings),
     codeReferences: [codeClause],
     sectionSnapshot: {
       designation: input.section.designation,

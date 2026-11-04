@@ -1,5 +1,7 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import type { DesignResult } from "../domain/resultContract";
+import { demandLabel, implementedChecksVerdict, resultWarnings } from "../domain/resultPresentation";
+import { pdfText } from "./pdfText";
 
 export type ReportMeta = {
   projectName: string;
@@ -133,8 +135,8 @@ function TableRow({ label, value, pass }: { label: string; value: string; pass?:
     s.tableValue;
   return (
     <View style={s.tableRow}>
-      <Text style={s.tableLabel}>{label}</Text>
-      <Text style={valueStyle}>{value}</Text>
+      <Text style={s.tableLabel}>{pdfText(label)}</Text>
+      <Text style={valueStyle}>{pdfText(value)}</Text>
     </View>
   );
 }
@@ -143,7 +145,7 @@ function SignatureLine({ label, value }: { label: string; value?: string }) {
   return (
     <View style={s.sigField}>
       <Text style={s.sigLabel}>{label}:</Text>
-      {value ? <Text style={s.sigValue}>{value}</Text> : <View style={s.sigLine} />}
+      {value ? <Text style={s.sigValue}>{pdfText(value)}</Text> : <View style={s.sigLine} />}
     </View>
   );
 }
@@ -153,12 +155,13 @@ function SignatureLine({ label, value }: { label: string; value?: string }) {
 type Props = { result: DesignResult; meta: ReportMeta };
 
 export function PdfReport({ result, meta }: Props) {
+  const warnings = resultWarnings(result.moduleType, result.warnings);
   const moduleLabel = result.moduleType.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
   const overallPass = result.displayResults.pass as boolean;
   const braceChecksMet = result.displayResults.calculatedChecksMet ?? result.displayResults.pass;
 
   // split section designation entries from demand inputs
-  const inputEntries = Object.values(result.displayInputSnapshot).filter(
+  const inputEntries = Object.entries(result.displayInputSnapshot).map(([key, entry]) => ({ ...entry, label: demandLabel(key, result.codeProfile, entry.label) })).filter(
     (e) => e.unit !== "designation",
   );
   const sectionEntries = Object.values(result.displayInputSnapshot).filter(
@@ -177,22 +180,22 @@ export function PdfReport({ result, meta }: Props) {
         {/* ── 1. Header ───────────────────────────────────────────────── */}
         <View style={s.section}>
           <Text style={s.reportTitle}>Structural Steel Design Calculation</Text>
-          <Text style={s.moduleLabel}>{moduleLabel}{result.moduleType === "brace" ? " — preliminary member checks" : " Design"}</Text>
+          <Text style={s.moduleLabel}>{moduleLabel}{result.moduleType === "brace" ? " - preliminary member checks" : " Design"}</Text>
           <View style={s.grid}>
             <View style={s.gridCell}>
-              <Text><Text style={s.gridLabel}>Project:</Text> {meta.projectName}</Text>
+              <Text><Text style={s.gridLabel}>Project:</Text> {pdfText(meta.projectName)}</Text>
             </View>
             <View style={s.gridCell}>
               <Text><Text style={s.gridLabel}>Code:</Text> {meta.codeProfile}</Text>
             </View>
             <View style={s.gridCell}>
-              <Text><Text style={s.gridLabel}>Client:</Text> {meta.client}</Text>
+              <Text><Text style={s.gridLabel}>Client:</Text> {pdfText(meta.client)}</Text>
             </View>
             <View style={s.gridCell}>
               <Text><Text style={s.gridLabel}>Unit System:</Text> {meta.unitSystem}</Text>
             </View>
             <View style={s.gridCell}>
-              <Text><Text style={s.gridLabel}>Location:</Text> {meta.location}</Text>
+              <Text><Text style={s.gridLabel}>Location:</Text> {pdfText(meta.location)}</Text>
             </View>
           </View>
         </View>
@@ -233,7 +236,7 @@ export function PdfReport({ result, meta }: Props) {
           <SectionHeader title="Governing Checks" />
           <View style={s.badgeRow}>
             <Text style={result.moduleType === "brace" ? s.warning : overallPass ? s.badgePass : s.badgeFail}>
-              {result.moduleType === "brace" ? "ENGINEERING REVIEW REQUIRED" : overallPass ? "✓  PASS" : "✗  FAIL"}
+              {result.moduleType === "brace" ? "ENGINEERING REVIEW REQUIRED" : implementedChecksVerdict(overallPass)}
             </Text>
           </View>
           {result.moduleType === "brace" && <Text>Calculated strength/slenderness screens: {braceChecksMet ? "met within stated scope" : "not met"}. This is not overall design approval.</Text>}
@@ -259,19 +262,19 @@ export function PdfReport({ result, meta }: Props) {
                 Calculation
               </Text>
               {result.calculationLines.map((line, i) => (
-                <Text key={i} style={s.calcLine}>{line}</Text>
+                <Text key={i} style={s.calcLine}>{pdfText(line)}</Text>
               ))}
             </View>
           )}
         </View>
 
         {/* ── 6. Warnings ─────────────────────────────────────────────── */}
-        {result.warnings.length > 0 && (
+        {warnings.length > 0 && (
           <View style={s.section}>
             <SectionHeader title="Warnings" />
             <View style={s.warningBox}>
-              {result.warnings.map((w, i) => (
-                <Text key={i} style={s.warning}>• {w}</Text>
+              {warnings.map((w, i) => (
+                <Text key={i} style={s.warning}>- {pdfText(w)}</Text>
               ))}
             </View>
           </View>

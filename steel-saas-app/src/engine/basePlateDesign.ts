@@ -1,4 +1,5 @@
 import { assertCalculationInputs, ensureFiniteResult } from "./inputGuards";
+import { demandLabel, RESULT_SCOPE, resultWarnings } from "../domain/resultPresentation";
 import type { CodeProfile } from "../domain/codeProfiles";
 import { validateFactoredDemandInput } from "../domain/demandInputHandling";
 import type { DesignResult } from "../domain/resultContract";
@@ -93,7 +94,7 @@ export function calculateBasePlateDesign(input: BasePlateDesignInput): DesignRes
     unitSystem: input.unitSystem,
     demandMode: "user_factored_demands",
     displayInputSnapshot: {
-      factoredCompression: input.factoredCompression,
+      factoredCompression: { ...input.factoredCompression, label: demandLabel("factoredCompression", input.codeProfile) },
       plateN: input.plateN,
       plateB: input.plateB,
       concreteStrength: input.concreteStrength,
@@ -125,8 +126,8 @@ export function calculateBasePlateDesign(input: BasePlateDesignInput): DesignRes
       tpRequired: Number(tpReq.toFixed(2)),
     },
     calculationLines: [
-      "Scope: concentric compression bearing and required thickness only; supplied thickness, anchors, welds, uplift and moment are not checked.",
-      `${input.factoredCompression.label} = ${input.factoredCompression.value} ${forceUnit}`,
+      RESULT_SCOPE.base_plate!,
+      `${demandLabel("factoredCompression", input.codeProfile)} = ${input.factoredCompression.value} ${forceUnit}`,
       `Plate: N = ${N} ${lengthUnit}, B = ${B} ${lengthUnit}`,
       `A₁_req = P / (φc × 0.85 × f'c) = ${a1Req.toFixed(0)} ${lengthUnit}² [φc = ${phiC}]`,
       `A₁_supplied = N × B = ${a1Supplied} ${lengthUnit}² → ${bearingAreaPass ? "PASS" : "FAIL"}`,
@@ -136,7 +137,7 @@ export function calculateBasePlateDesign(input: BasePlateDesignInput): DesignRes
       `f_p = P / (N × B) = ${fp.toFixed(3)} ${pressureUnit}`,
       `t_p,req = ℓ × √(2f_p / (φb × F_y)) = ${tpReq.toFixed(2)} ${lengthUnit} [φb = ${phiB}]`,
     ],
-    warnings,
+    warnings: resultWarnings("base_plate", warnings),
     codeReferences: [codeClause],
     sectionSnapshot: {
       designation: input.section.designation,

@@ -129,6 +129,13 @@ const meta: ReportMeta = {
 // ── tests ─────────────────────────────────────────────────────────────────────
 
 describe("generatePdfReport", () => {
+  it("renders math and optional-field placeholders using readable font-safe text", async () => {
+    const result = { ...beamResult, calculationLines: ["M_r = φ × F_y · S_x − 1; π²; √(2); A₁ ≥ A₂ → PASS"] };
+    const text = extractPdfText(await generatePdfReport(result, { ...meta, client: "—", location: "—" }));
+    expect(text).toContain("M_r = phi * F_y * S_x - 1; pi^2; sqrt(2); A_1 >= A_2 -> PASS");
+    expect(text).toContain("Client: -");
+    expect(text).toContain("Location: -");
+  }, 20_000);
   it("returns a valid PDF buffer (magic bytes + non-trivial size)", async () => {
     const buf = await generatePdfReport(beamResult, meta);
     expect(buf).toBeInstanceOf(Buffer);
@@ -155,13 +162,14 @@ describe("generatePdfReport", () => {
 
   it("section 5 — PASS badge and governing ratio", async () => {
     const text = extractPdfText(await generatePdfReport(beamResult, meta));
-    expect(text).toContain("PASS");
+    expect(text).toContain("Implemented checks pass");
+    expect(text).toContain("lateral-torsional buckling");
     expect(text).toContain("0.399");
   }, 20_000);
 
   it("section 5 — FAIL badge when result passes=false", async () => {
     const text = extractPdfText(await generatePdfReport(beamResultWithWarning, meta));
-    expect(text).toContain("FAIL");
+    expect(text).toContain("Implemented checks fail");
   }, 20_000);
 
   it("section 6 — warnings section heading present when warnings exist", async () => {

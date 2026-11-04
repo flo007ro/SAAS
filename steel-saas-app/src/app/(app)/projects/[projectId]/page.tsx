@@ -2,6 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
+import { implementedChecksVerdict } from "../../../../domain/resultPresentation";
 
 const typeIcon: Record<string, string> = { beam: "⌇", column: "▮", base_plate: "▬", brace: "↗" };
 const typeLabel: Record<string, string> = { beam: "Beam", column: "Column", base_plate: "Base Plate", brace: "Brace member checks" };
@@ -113,7 +114,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
                               background: reviewRequired ? "rgba(251,191,36,0.08)" : pass ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)",
                               border: `1px solid ${reviewRequired ? "rgba(251,191,36,0.25)" : pass ? "rgba(52,211,153,0.25)" : "rgba(248,113,113,0.25)"}`,
                               borderRadius: 5, padding: "2px 9px",
-                            }}>{reviewRequired ? "REVIEW REQUIRED" : pass ? "✓ CHECKS PASS" : "✗ CHECKS FAIL"}</span>
+                            }}>{reviewRequired ? "REVIEW REQUIRED" : implementedChecksVerdict(pass)}</span>
                           )}
                           {run.status !== "complete" && (
                             <span style={{ fontSize: 11, fontFamily: "monospace", color: "rgba(148,163,184,0.4)" }}>

@@ -1,4 +1,5 @@
 import type { DesignResult } from "../domain/resultContract";
+import { demandLabel, implementedChecksVerdict, resultWarnings } from "../domain/resultPresentation";
 
 export type ReportModel = {
   title: string;
@@ -16,16 +17,16 @@ export type ReportModel = {
 export function buildReportModelFromResultJson(result: DesignResult): ReportModel {
   return {
     title: result.moduleType === "brace" ? "Brace preliminary member checks — engineering review required" : `${result.moduleType} design calculation`,
-    inputRows: Object.values(result.displayInputSnapshot).map((entry) => ({
-      label: entry.label,
+    inputRows: Object.entries(result.displayInputSnapshot).map(([key, entry]) => ({
+      label: demandLabel(key, result.codeProfile, entry.label),
       value: `${entry.value} ${entry.unit}`,
     })),
     resultRows: Object.entries(result.displayResults).map(([label, value]) => ({
-      label,
-      value: String(value),
+      label: label === "pass" ? "Implemented checks" : label,
+      value: label === "pass" ? (result.moduleType === "brace" ? "Engineering review required" : implementedChecksVerdict(value)) : String(value),
     })),
     calculationLines: result.calculationLines,
-    warnings: result.warnings,
+    warnings: resultWarnings(result.moduleType, result.warnings),
     codeReferences: result.codeReferences,
     signatureBlock: {
       title: "Engineer of Record",

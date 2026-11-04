@@ -1,10 +1,12 @@
 import type { SteelSection } from "./sectionTypes";
+import { buildSectionCatalog } from "./sectionCatalog";
+import activatedAisc from "./aiscCatalog.generated.json";
 
 // ── Seed version 0.1.0 ────────────────────────────────────────────────────────
 // All values audited 2026-05-16. Sources cited per section.
 // Bump sectionDbVersion on next schema migration that reaches production.
 
-export const sectionSeedV1: SteelSection[] = [
+export const sectionFixturesV1: SteelSection[] = [
   {
     // Source: CISC Handbook of Steel Construction, 11th edition, Table 5-1.
     // Corrections vs original workbook seed:
@@ -93,3 +95,7 @@ export const sectionSeedV1: SteelSection[] = [
     sourceNote: "Corrected against AISC SCM 16th ed. Table 1-1.",
   },
 ];
+
+// Compatibility export: API, forms, profiles and engine validation all consume
+// this same build-time catalog. SQL imports alone never alter engine inputs.
+export const sectionSeedV1 = buildSectionCatalog(sectionFixturesV1, activatedAisc);
