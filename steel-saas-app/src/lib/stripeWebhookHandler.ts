@@ -22,15 +22,16 @@ const HANDLED_EVENTS = new Set([
 // ── status mapping ────────────────────────────────────────────────────────────
 
 export function mapStripeStatus(eventType: string, stripeStatus: string): string | null {
-  if (eventType === "customer.subscription.created") return "active";
   if (eventType === "customer.subscription.deleted") return "canceled";
-  // customer.subscription.updated — map Stripe status
+  // Created and updated subscriptions use the same explicit status mapping.
   switch (stripeStatus) {
     case "active":    return "active";
     case "past_due":  return "past_due";
     case "canceled":
+    case "incomplete":
+    case "incomplete_expired":
     case "unpaid":    return "canceled";
-    default:          return null; // trialing, incomplete, etc. — no-op
+    default:          return null; // trialing and unrecognised statuses remain no-ops
   }
 }
 

@@ -1,3 +1,5 @@
+import { isFreeBeta } from "./billingMode";
+
 type EnforcementResult =
   | { allowed: true }
   | { allowed: false; httpStatus: 402; message: string };
@@ -5,7 +7,7 @@ type EnforcementResult =
 export function enforceSubscription(
   status: string | null | undefined,
 ): EnforcementResult {
-  if (status === "active") {
+  if (status === "active" || (isFreeBeta() && status != null)) {
     return { allowed: true };
   }
   return {

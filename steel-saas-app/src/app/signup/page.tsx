@@ -4,6 +4,7 @@ import { prisma } from "../../lib/prisma";
 import { hashPassword } from "../../lib/passwordHash";
 import { signIn } from "../../lib/auth";
 import { AuthError } from "next-auth";
+import { isFreeBeta } from "../../lib/billingMode";
 
 // ── validation ────────────────────────────────────────────────────────────────
 
@@ -160,7 +161,9 @@ export default async function SignUpPage({ searchParams }: Props) {
         </form>
 
         <p style={{ marginTop: "1rem", fontSize: "0.75rem", color: "#9ca3af", textAlign: "center" }}>
-          Your organisation starts on the beta plan. A subscription is required to run calculations.
+          {isFreeBeta()
+            ? "Free testing access"
+            : "Your organisation starts on the beta plan. A subscription is required to run calculations."}
         </p>
       </div>
     </main>

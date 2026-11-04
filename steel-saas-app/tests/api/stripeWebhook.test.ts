@@ -27,10 +27,15 @@ function makeDeps(overrides: Partial<StripeWebhookDeps> = {}): StripeWebhookDeps
 // ── mapStripeStatus ───────────────────────────────────────────────────────────
 
 describe("mapStripeStatus", () => {
-  it("created event always maps to 'active' regardless of Stripe status", () => {
-    expect(mapStripeStatus("customer.subscription.created", "active")).toBe("active");
-    expect(mapStripeStatus("customer.subscription.created", "trialing")).toBe("active");
-    expect(mapStripeStatus("customer.subscription.created", "past_due")).toBe("active");
+  describe.each(["customer.subscription.created", "customer.subscription.updated"])("%s", (eventType) => {
+    it.each([
+      ["active", "active"], ["past_due", "past_due"],
+      ["canceled", "canceled"], ["unpaid", "canceled"],
+      ["incomplete", "canceled"], ["incomplete_expired", "canceled"],
+      ["trialing", null], ["unknown", null],
+    ])("maps %s to %s", (status, expected) => {
+      expect(mapStripeStatus(eventType, status)).toBe(expected);
+    });
   });
 
   it("deleted event always maps to 'canceled' regardless of Stripe status", () => {
@@ -47,13 +52,34 @@ describe("mapStripeStatus", () => {
 
   it("updated event with unhandled Stripe status returns null (no-op)", () => {
     expect(mapStripeStatus("customer.subscription.updated", "trialing")).toBeNull();
-    expect(mapStripeStatus("customer.subscription.updated", "incomplete")).toBeNull();
+    expect(mapStripeStatus("customer.subscription.updated", "unknown")).toBeNull();
   });
 });
 
 // ── handleStripeWebhook ───────────────────────────────────────────────────────
 
 describe("handleStripeWebhook", () => {
+  describe.each(["customer.subscription.created", "customer.subscription.updated"])("%s", (eventType) => {
+    it.each(["unpaid", "incomplete", "incomplete_expired"])("revokes active access for %s", async (stripeStatus) => {
+      let status = "active";
+      const result = await handleStripeWebhook(
+        makeRawEvent(eventType, stripeStatus), "valid-sig",
+        makeDeps({ updateSubscriptionStatus: async (_orgId, next) => { status = next; } }),
+      );
+      expect(result).toEqual({ ok: true });
+      expect(status).toBe("canceled");
+    });
+
+    it("preserves trialing as a no-op", async () => {
+      const updates: string[] = [];
+      const result = await handleStripeWebhook(
+        makeRawEvent(eventType, "trialing"), "valid-sig",
+        makeDeps({ updateSubscriptionStatus: async (_orgId, status) => { updates.push(status); } }),
+      );
+      expect(result).toEqual({ ok: true });
+      expect(updates).toEqual([]);
+    });
+  });
   it("returns 400 when Stripe-Signature header is missing", async () => {
     const result = await handleStripeWebhook("body", null, makeDeps());
     expect(result.ok).toBe(false);
@@ -85,7 +111,7 @@ describe("handleStripeWebhook", () => {
   it("customer.subscription.created sets status to 'active'", async () => {
     const updates: { orgId: string; status: string }[] = [];
     const result = await handleStripeWebhook(
-      makeRawEvent("customer.subscription.created", "trialing"),
+      makeRawEvent("customer.subscription.created", "active"),
       "valid-sig",
       makeDeps({
         updateSubscriptionStatus: async (orgId, status) => { updates.push({ orgId, status }); },

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "../../../lib/auth";
 import { prisma } from "../../../lib/prisma";
+import { isFreeBeta } from "../../../lib/billingMode";
 
 const styles = {
   page:      { padding: "2rem", fontFamily: "system-ui, sans-serif", maxWidth: "800px", margin: "0 auto" } as const,
@@ -35,6 +36,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
   ]);
 
   const { subscribed } = await searchParams;
+  const freeBeta = isFreeBeta();
   const isActive = org?.subscriptionStatus === "active";
   const hasCustomer = Boolean(org?.stripeCustomerId);
 
@@ -46,12 +48,17 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
       </div>
 
       {/* Subscription banner */}
-      {subscribed === "1" && isActive && (
+      {freeBeta && org && (
+        <div style={{ ...styles.banner, background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#15803d" }}>
+          <span>Free testing access</span>
+        </div>
+      )}
+      {!freeBeta && subscribed === "1" && isActive && (
         <div style={{ ...styles.banner, background: "#f0fdf4", border: "1px solid #bbf7d0", color: "#15803d" }}>
           <span>Subscription active — you can now run calculations.</span>
         </div>
       )}
-      {!isActive && (
+      {!freeBeta && !isActive && (
         <div style={styles.banner}>
           <span>A subscription is required to run calculations. You are currently on the beta plan.</span>
           <form action="/api/stripe/checkout" method="POST">
@@ -59,7 +66,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams: Pro
           </form>
         </div>
       )}
-      {isActive && hasCustomer && subscribed !== "1" && (
+      {!freeBeta && isActive && hasCustomer && subscribed !== "1" && (
         <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: "1rem" }}>
           <form action="/api/stripe/portal" method="POST">
             <button type="submit" style={styles.manageBtn}>Manage subscription</button>

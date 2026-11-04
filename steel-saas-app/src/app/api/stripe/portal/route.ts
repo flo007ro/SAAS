@@ -2,10 +2,15 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { auth } from "../../../../lib/auth";
 import { prisma } from "../../../../lib/prisma";
+import { isFreeBeta } from "../../../../lib/billingMode";
 
 export async function POST() {
   const session = await auth();
   if (!session?.user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  if (isFreeBeta()) {
+    return NextResponse.json({ error: "Billing is disabled during free testing." }, { status: 403 });
+  }
 
   const orgId = session.user.organizationId;
 
