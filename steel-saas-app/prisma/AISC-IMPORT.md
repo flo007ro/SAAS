@@ -1,5 +1,17 @@
 # AISC Catalog Import And Integration Handoff
 
+## Activation Update - 2026-11-04
+
+The operator supplied `aisc-shapes-database-v160-3.xlsx` and confirmed data-use
+permission in chat. Preparation and offline import validation accepted 289 W-shapes
+and excluded 2010 unsupported non-W rows. The activated build-time catalog version
+is `aisc-16.0-us-a992-50ksi-e08bea15bbe4`; both unit views derive from these rows.
+This records the operator's confirmation, not independent legal verification.
+The source workbook is not committed. No SQL import is needed for the shared
+application catalog. Canadian sections remain the two reference shapes; A1085 HSS
+is not enabled. Historical handoff limitations below describe the pre-activation
+state and are superseded by this update where they say the catalog is null.
+
 ## Official Source And Rights
 
 [AISC Shapes Database v16.0](https://www.aisc.org/aisc/publications/steel-construction-manual/aisc-shapes-database-v160/)

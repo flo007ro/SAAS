@@ -21,7 +21,8 @@ describe("module / units / code matrix", () => {
         it(`${type} / ${unitSystem} / ${codeProfile}`, () => {
           const project = { unitSystem, codeProfile };
           const sections = parseSectionOptions(sectionSeedV1, codeProfile, unitSystem);
-          const input = buildRunInput(type, unitSystem, codeProfile, fields[unitSystem], sections[0]?.designation ?? "W12x40");
+          const designation = codeProfile === "AISC_360_22" ? "W12x40" : "W310x39";
+          const input = buildRunInput(type, unitSystem, codeProfile, fields[unitSystem], designation);
           if (!sections.length) {
             expect(() => engines[type]("matrix", project, input)).toThrow(/compatible/);
           } else {
@@ -29,7 +30,7 @@ describe("module / units / code matrix", () => {
             expect(designResultSchema.safeParse(result).success).toBe(true);
             expect(result.codeProfile).toBe(codeProfile);
             expect(result.unitSystem).toBe(unitSystem);
-            expect(result.sectionSnapshot?.designation).toBe(sections[0].designation);
+            expect(result.sectionSnapshot?.designation).toBe(designation);
             expect(Object.values(result.displayResults).filter(v => typeof v === "number").every(Number.isFinite)).toBe(true);
             expect(result.displayResults.pass).toBe(true);
           }
