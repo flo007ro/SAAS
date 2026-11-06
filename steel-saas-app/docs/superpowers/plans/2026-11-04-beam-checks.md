@@ -30,9 +30,9 @@ be explicitly unsupported rather than approximated without disclosure.
   unsupported case is not checked, not pass. Preserve legacy result warnings.
 - [x] Verify supported AISC strength/shared deflection benchmark values, both unit systems, invalid/overflow inputs,
   unsupported cases, saved-run regeneration, form/PDF presentation and build.
-- [ ] Independently review before publication and verify live behavior.
+- [x] Independently review the supported release before publication and verify live behavior.
 
-Local release evidence: 997 TypeScript tests and four Python workbook tests pass.
+Local release evidence: 999 TypeScript tests and four Python workbook tests pass.
 Code review and desktop/mobile form inspection are complete. CSA strength remains
 open above; it is visibly not checked, not silently represented as implemented.
 

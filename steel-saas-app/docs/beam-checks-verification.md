@@ -53,3 +53,21 @@ and Canadian section properties. They remain explicitly not checked; AISC rules
 are never substituted. Canadian catalog expansion, HSS calculations, cantilevers,
 continuous beams, complete shear design and professional validation remain open.
 No automatic load combinations, self-weight, camber or composite action are added.
+
+## Live Supported-Release Evidence
+
+Commit `e88188b` reached Vercel Ready. A synthetic W18x50 assessment saved as
+`cmw5buj0x0001jr07ub5gutg6` under the existing Beauce Design test project.
+Inputs: span 240 in, Lb 120 in, Fy 50 ksi, Cb 1, factored moment 100 kip-ft,
+factored shear 20 kip, unfactored dead/live UDL 0.1/0.2 kip/ft, limits L/360
+live and L/240 total. Classification, flexure, LTB and deflection were checked;
+the overall verdict remained engineering-review-required because shear was not
+verified. The saved result reported governing flexural resistance 324.21252
+kip-ft, live deflection 0.0310264 in and total deflection 0.0465396 in.
+The authenticated PDF endpoint generated a four-page report.
+
+Visual inspection of that real PDF exposed long fingerprint text overflowing
+the value column. Printed SHA-256 fingerprints are now grouped into 16-character
+chunks for wrapping, with every original character preserved and no change to
+the stored input/property provenance. Two focused regressions cover grouping
+and unchanged ordinary values; the complete suite passes 999 tests.
