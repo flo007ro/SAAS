@@ -13,6 +13,7 @@ from openpyxl import load_workbook
 
 SOURCE_URL = "https://www.aisc.org/aisc/publications/steel-construction-manual/aisc-shapes-database-v160/"
 FIELDS = ("W", "A", "d", "bf", "tw", "tf", "Sx", "Ix", "rx", "Sy", "Iy", "ry")
+OPTIONAL_FIELDS = ("Zx", "J", "Cw", "rts", "ho", "kdes", "h/tw", "bf/2tf")
 MATERIAL = "ASTM_A992_Fy50ksi"
 
 
@@ -34,10 +35,12 @@ def prepare_catalog(raw: bytes, *, material: str) -> dict:
         if tuple(headers[:7]) != ("Type", "EDI_Std_Nomenclature", "AISC_Manual_Label", "T_F", "W", "A", "d"):
             raise ValueError("Unexpected US customary header layout; do not infer units")
         indices = {}
-        for field in ("Type", "AISC_Manual_Label", *FIELDS):
+        for field in ("Type", "AISC_Manual_Label", *FIELDS, *OPTIONAL_FIELDS):
             try:
                 indices[field] = headers.index(field)
             except ValueError as exc:
+                if field in OPTIONAL_FIELDS:
+                    continue
                 raise ValueError(f"Missing column {field}") from exc
             if indices[field] >= 84:
                 raise ValueError(f"Column {field} is outside the US customary block")
@@ -60,8 +63,12 @@ def prepare_catalog(raw: bytes, *, material: str) -> dict:
                 raise ValueError(f"Duplicate W designation at worksheet row {number}")
             seen.add(label.upper())
             row = {"AISC_Manual_Label": label}
-            for field in FIELDS:
+            for field in (*FIELDS, *OPTIONAL_FIELDS):
+                if field not in indices:
+                    continue
                 value = values[indices[field]]
+                if field in OPTIONAL_FIELDS and value is None:
+                    continue
                 if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) or value <= 0:
                     raise ValueError(f"Expected positive numeric {field} at worksheet row {number}; formulas are not accepted")
                 row[field] = value

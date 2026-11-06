@@ -20,5 +20,14 @@ export type SteelSection = {
   fy: number;
   sy?: number;
   iy?: number;
+  // Native units: in^n or mm^n; ratios are dimensionless. Absent means unverified.
+  zx?: number; // Plastic modulus, length^3.
+  j?: number; // St Venant torsional constant, length^4.
+  cw?: number; // Warping constant, length^6.
+  rts?: number; // Effective LTB radius, length.
+  ho?: number; // Flange centroid spacing, length.
+  kdes?: number; // Flange outer face to web fillet toe, length.
+  hOverTw?: number;
+  bfOver2tf?: number;
   sourceNote: string;
 };

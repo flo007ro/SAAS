@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { implementedChecksVerdict } from "../../../../domain/resultPresentation";
+import { beamChecksVerdict, implementedChecksVerdict } from "../../../../domain/resultPresentation";
 
 const typeIcon: Record<string, string> = { beam: "⌇", column: "▮", base_plate: "▬", brace: "↗" };
 const typeLabel: Record<string, string> = { beam: "Beam", column: "Column", base_plate: "Base Plate", brace: "Brace member checks" };
@@ -92,8 +92,10 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
                 <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                   {runs.map(run => {
                     const result = run.resultJson as Record<string, unknown> | null;
-                    const pass = (result?.displayResults as Record<string, unknown> | undefined)?.pass === true;
-                    const reviewRequired = run.type === "brace";
+                    const modernBeam = run.type === "beam" && result?.beamChecks !== undefined;
+                    const verdict = modernBeam ? beamChecksVerdict(result.beamChecks) : implementedChecksVerdict((result?.displayResults as Record<string, unknown> | undefined)?.pass === true);
+                    const pass = verdict === "Implemented checks pass";
+                    const reviewRequired = run.type === "brace" || verdict === "Engineering review required";
                     return (
                       <Link key={run.id} href={`/projects/${project.id}/runs/${run.id}`} style={{ textDecoration: "none" }}>
                         <div style={{
@@ -114,7 +116,7 @@ export default async function ProjectPage({ params }: { params: Promise<{ projec
                               background: reviewRequired ? "rgba(251,191,36,0.08)" : pass ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)",
                               border: `1px solid ${reviewRequired ? "rgba(251,191,36,0.25)" : pass ? "rgba(52,211,153,0.25)" : "rgba(248,113,113,0.25)"}`,
                               borderRadius: 5, padding: "2px 9px",
-                            }}>{reviewRequired ? "REVIEW REQUIRED" : implementedChecksVerdict(pass)}</span>
+                            }}>{run.type === "brace" ? "REVIEW REQUIRED" : verdict}</span>
                           )}
                           {run.status !== "complete" && (
                             <span style={{ fontSize: 11, fontFamily: "monospace", color: "rgba(148,163,184,0.4)" }}>

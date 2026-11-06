@@ -1,7 +1,8 @@
 import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
 import type { DesignResult } from "../domain/resultContract";
-import { demandLabel, implementedChecksVerdict, resultWarnings } from "../domain/resultPresentation";
+import { beamCheckRows, beamChecksVerdict, beamSectionPropertyRows, beamServiceabilityRows, demandLabel, implementedChecksVerdict, resultWarnings } from "../domain/resultPresentation";
 import { pdfText } from "./pdfText";
+import { legacyBeamDiagnosticRows, LEGACY_DIAGNOSTIC_KEYS, LEGACY_DIAGNOSTICS_NOTE, LEGACY_DIAGNOSTICS_TITLE } from "./legacyBeamDiagnostics";
 
 export type ReportMeta = {
   projectName: string;
@@ -155,10 +156,13 @@ function SignatureLine({ label, value }: { label: string; value?: string }) {
 type Props = { result: DesignResult; meta: ReportMeta };
 
 export function PdfReport({ result, meta }: Props) {
-  const warnings = resultWarnings(result.moduleType, result.warnings);
+  const checks = result.moduleType === "beam" ? result.beamChecks : undefined;
+  const verdict = checks ? beamChecksVerdict(checks) : implementedChecksVerdict(result.displayResults.pass);
+  const warnings = resultWarnings(result.moduleType, result.warnings, checks);
   const moduleLabel = result.moduleType.replace("_", " ").replace(/\b\w/g, (c) => c.toUpperCase());
   const overallPass = result.displayResults.pass as boolean;
   const braceChecksMet = result.displayResults.calculatedChecksMet ?? result.displayResults.pass;
+  const diagnosticRows = legacyBeamDiagnosticRows(result);
 
   // split section designation entries from demand inputs
   const inputEntries = Object.entries(result.displayInputSnapshot).map(([key, entry]) => ({ ...entry, label: demandLabel(key, result.codeProfile, entry.label) })).filter(
@@ -170,7 +174,7 @@ export function PdfReport({ result, meta }: Props) {
 
   // display results excluding the raw boolean pass field (shown as badge)
   const resultEntries = Object.entries(result.displayResults).filter(
-    ([key]) => key !== "pass",
+    ([key]) => key !== "pass" && !(checks && LEGACY_DIAGNOSTIC_KEYS.some(diagnosticKey => diagnosticKey === key)),
   );
 
   return (
@@ -228,6 +232,9 @@ export function PdfReport({ result, meta }: Props) {
             {sectionEntries.map((entry, i) => (
               <TableRow key={i} label={entry.label} value={String(entry.value)} />
             ))}
+            {checks && result.sectionSnapshot && beamSectionPropertyRows(result.sectionSnapshot, result.unitSystem).map(row => (
+              <TableRow key={row.label} label={row.label} value={row.value} />
+            ))}
           </View>
         )}
 
@@ -235,16 +242,22 @@ export function PdfReport({ result, meta }: Props) {
         <View style={s.section}>
           <SectionHeader title="Governing Checks" />
           <View style={s.badgeRow}>
-            <Text style={result.moduleType === "brace" ? s.warning : overallPass ? s.badgePass : s.badgeFail}>
-              {result.moduleType === "brace" ? "ENGINEERING REVIEW REQUIRED" : implementedChecksVerdict(overallPass)}
+            <Text style={result.moduleType === "brace" || (checks && verdict === "Engineering review required") ? s.warning : (checks ? verdict === "Implemented checks pass" : overallPass) ? s.badgePass : s.badgeFail}>
+              {result.moduleType === "brace" ? "ENGINEERING REVIEW REQUIRED" : verdict}
             </Text>
           </View>
           {result.moduleType === "brace" && <Text>Calculated strength/slenderness screens: {braceChecksMet ? "met within stated scope" : "not met"}. This is not overall design approval.</Text>}
+          {checks && beamCheckRows(checks).map(check => (
+            <TableRow key={check.key} label={check.label}
+              value={`${check.status === "not_checked" ? "Not checked" : check.status === "pass" ? "Pass" : "Fail"}: ${check.summary}${check.ratio !== undefined ? ` (DCR ${check.ratio})` : ""}`}
+              pass={check.status === "not_checked" ? undefined : check.status === "pass"} />
+          ))}
+          {checks && beamServiceabilityRows(result).map(row => <TableRow key={row.label} label={row.label} value={row.value} />)}
           {resultEntries.map(([key, value], i) => {
             const isRatio = key.toLowerCase().includes("ratio") || key.toLowerCase().includes("dcr");
             const numVal = typeof value === "number" ? value : null;
             const passProp =
-              result.moduleType === "brace" ? undefined : isRatio && numVal !== null ? numVal <= 1 :
+              result.moduleType === "brace" || checks ? undefined : isRatio && numVal !== null ? numVal <= 1 :
               typeof value === "boolean" ? (value as boolean) :
               undefined;
             return (
@@ -267,6 +280,12 @@ export function PdfReport({ result, meta }: Props) {
             </View>
           )}
         </View>
+
+        {diagnosticRows.length > 0 && <View style={s.section}>
+          <SectionHeader title={LEGACY_DIAGNOSTICS_TITLE} />
+          <Text style={{ color: "#374151", marginBottom: 6 }}>{LEGACY_DIAGNOSTICS_NOTE}</Text>
+          {diagnosticRows.map(row => <TableRow key={row.label} label={row.label} value={row.value} />)}
+        </View>}
 
         {/* ── 6. Warnings ─────────────────────────────────────────────── */}
         {warnings.length > 0 && (

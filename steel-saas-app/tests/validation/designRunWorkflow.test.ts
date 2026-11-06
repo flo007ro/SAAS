@@ -32,7 +32,11 @@ describe("module / units / code matrix", () => {
             expect(result.unitSystem).toBe(unitSystem);
             expect(result.sectionSnapshot?.designation).toBe(designation);
             expect(Object.values(result.displayResults).filter(v => typeof v === "number").every(Number.isFinite)).toBe(true);
-            expect(result.displayResults.pass).toBe(true);
+            expect(result.displayResults.pass).toBe(type !== "beam");
+            if (type === "beam") {
+              expect(Object.values(result.beamChecks ?? {})).toHaveLength(5);
+              expect(Object.values(result.beamChecks!).every(check => check.status === "not_checked")).toBe(true);
+            }
           }
         });
       }

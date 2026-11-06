@@ -16,7 +16,7 @@ export default function ProfileExplorer() {
         <optgroup label="CSA · metric">{sectionSeedV1.filter(s=>s.standard==='CSA_S16_19' && s.unitSystem==='metric').map(s=><option key={s.designation} value={s.designation}>{s.designation} — wide flange</option>)}</optgroup>
       </select></label>
       <div className="profile-reference"><span>REFERENCE</span><p>{section.sourceNote}</p><p>Yield strength: {section.fy} {section.unitSystem==='metric'?'MPa':'ksi'} · {section.sectionDbVersion}</p></div>
-      <p className="profile-note">The current AISC reference entry is W12×40. This is a nominal dimensional visualization, not a fabrication model or verification of all AISC design checks.</p>
+      <p className="profile-note">Nominal section dimensions only; not a fabrication model or a completed member design. Material grade and design applicability require engineering verification.</p>
     </div>
     <ProfileViewer profile={section} standard={section.standard==='AISC_360_22'?'AISC · W-shape':'CSA · W-shape'} />
   </div>;

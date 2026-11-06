@@ -26,6 +26,12 @@ export function convertSectionUnits(section: SteelSection, target: UnitSystem): 
     fy: section.fy * stress,
     ...(section.sy === undefined ? {} : { sy: section.sy * length ** 3 }),
     ...(section.iy === undefined ? {} : { iy: section.iy * length ** 4 }),
+    ...(section.zx === undefined ? {} : { zx: section.zx * length ** 3 }),
+    ...(section.j === undefined ? {} : { j: section.j * length ** 4 }),
+    ...(section.cw === undefined ? {} : { cw: section.cw * length ** 6 }),
+    ...(section.rts === undefined ? {} : { rts: section.rts * length }),
+    ...(section.ho === undefined ? {} : { ho: section.ho * length }),
+    ...(section.kdes === undefined ? {} : { kdes: section.kdes * length }),
     sourceNote: `${section.sourceNote} Converted view: ${section.unitSystem} to ${target}; exact inch/mm and lb/ft-to-kg/m factors, dimension powers and ksi/MPa conversion. Original designation, standard and dataset version retained.`,
   };
 }

@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import type { CodeProfile } from "@/domain/codeProfiles";
 import type { UnitSystem } from "@/domain/units";
 import { buildRunInput, parseSectionOptions, runFields, type RunType, type SectionOption } from "@/domain/runForm";
+import BeamAssessmentFields, { buildBeamAssessmentDisplayValues } from "../../../../../../components/beam/BeamAssessmentFields";
 
 export default function RunForm({ projectId, projectName, unitSystem, codeProfile, braceEnabled = false }: {
   projectId: string; projectName: string; unitSystem: UnitSystem; codeProfile: CodeProfile; braceEnabled?: boolean;
@@ -15,7 +16,10 @@ export default function RunForm({ projectId, projectName, unitSystem, codeProfil
   const router = useRouter();
   const [type, setType] = useState<RunType | "">("");
   const [title, setTitle] = useState("");
-  const [fields, setFields] = useState<Record<string, string>>({ factoredTension: "0", factoredCompression: "0", tensionSlendernessLimit: "300", compressionSlendernessLimit: "200" });
+  const [fields, setFields] = useState<Record<string, string>>({ factoredTension: "0", factoredCompression: "0", tensionSlendernessLimit: "300", compressionSlendernessLimit: "200", aiscCb: "1" });
+  const [assessBeam, setAssessBeam] = useState(false);
+  const [beamLoadConfirmed, setBeamLoadConfirmed] = useState(false);
+  const [beamRestraintConfirmed, setBeamRestraintConfirmed] = useState(false);
   const [seismicDemand, setSeismicDemand] = useState("ordinary");
   const [section, setSection] = useState("");
   const [sections, setSections] = useState<SectionOption[]>([]);
@@ -31,6 +35,8 @@ export default function RunForm({ projectId, projectName, unitSystem, codeProfil
   useEffect(() => {
     const controller = new AbortController();
     setSection("");
+    setBeamLoadConfirmed(false);
+    setBeamRestraintConfirmed(false);
     setSections([]);
     setSectionsLoading(true);
     setSectionError("");
@@ -59,6 +65,11 @@ export default function RunForm({ projectId, projectName, unitSystem, codeProfil
     if (!title.trim()) { setError("Enter a run title."); return; }
     try {
       const inputJson = buildRunInput(type, unitSystem, codeProfile, fields, section);
+      if (type === "beam" && assessBeam) {
+        Object.assign(inputJson.displayValues, buildBeamAssessmentDisplayValues(
+          unitSystem, codeProfile, fields, beamLoadConfirmed, beamRestraintConfirmed,
+        ));
+      }
       if (type === "brace") inputJson.displayValues.seismicDemand = { label: "Brace demand category", value: seismicDemand, unit: "category" };
       submitting.current = true;
       setPending(true);
@@ -92,6 +103,9 @@ export default function RunForm({ projectId, projectName, unitSystem, codeProfil
       .run-editor label { display: grid; gap: 8px; font-size: 15px; font-weight: 500; }
       .run-editor input, .run-editor select { width: 100%; box-sizing: border-box; padding: 12px; background: #1a232c; color: #f0f9ff; border: 1px solid #64748b; border-radius: 6px; font-size: 16px; }
       .run-editor input:focus-visible, .run-editor select:focus-visible, .run-editor button:focus-visible { outline: 2px solid #bacdd7; outline-offset: 3px; }
+      .run-editor .beam-confirmation { display: flex; align-items: flex-start; gap: 12px; line-height: 1.5; }
+      .run-editor .beam-confirmation input { width: 20px; height: 20px; padding: 0; flex: 0 0 20px; margin: 2px 0 0; }
+      .run-editor legend { font-weight: 600; margin-bottom: 16px; }
       .run-editor button { background: #344c5c; color: white; border: 1px solid #b2c6d0; padding: 12px 18px; border-radius: 6px; font: inherit; cursor: pointer; }
       .run-editor button:disabled { opacity: .6; cursor: wait; }
       .run-editor [role=alert] { color: #fecaca; background: #451a1a; padding: 12px; border-radius: 6px; overflow-wrap: anywhere; }
@@ -100,12 +114,16 @@ export default function RunForm({ projectId, projectName, unitSystem, codeProfil
     <Link href={`/projects/${projectId}`}>← {projectName}</Link>
     <h1>New design run</h1>
     <p>Project settings: <strong>{codeProfile === "CSA_S16_19" ? "CSA S16-19" : "AISC 360-22"}</strong> · <strong>{unitSystem}</strong>.<br />
-      Code and units are inherited from the project. Enter pre-factored positive load magnitudes.</p>
+      Code and units are inherited from the project. Strength demands are pre-factored; optional beam service UDLs are unfactored.</p>
     {error && <div role="alert">{error} {failedRunId && <Link href={`/projects/${projectId}/runs/${failedRunId}`}>View saved failed run</Link>}</div>}
     <form onSubmit={submit}>
       <fieldset disabled={pending}>
         <label>Run title<input name="title" required maxLength={200} value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Roof beam B1" /></label>
-        <label>Calculation module<select name="type" required value={type} onChange={e => setType(e.target.value as RunType)}>
+        <label>Calculation module<select name="type" required value={type} onChange={e => {
+          setType(e.target.value as RunType);
+          setBeamLoadConfirmed(false);
+          setBeamRestraintConfirmed(false);
+        }}>
           <option value="" disabled>Select module…</option>
           <option value="beam">Beam — major-axis flexure and shear</option>
           <option value="column">Column — axial compression</option>
@@ -115,7 +133,11 @@ export default function RunForm({ projectId, projectName, unitSystem, codeProfil
         {!braceEnabled && <p className="profile-note">Brace member checks are prepared; database activation is pending. Existing calculation modules are available.</p>}
         {type && <>
           <label>{type === "base_plate" ? "Column section" : "Steel section"}
-            <select name="selectedSection" required value={section} disabled={sectionsLoading || !!sectionError || !sections.length} onChange={e => setSection(e.target.value)}>
+            <select name="selectedSection" required value={section} disabled={sectionsLoading || !!sectionError || !sections.length} onChange={e => {
+              setSection(e.target.value);
+              setBeamLoadConfirmed(false);
+              setBeamRestraintConfirmed(false);
+            }}>
               <option value="" disabled>{sectionsLoading ? "Loading sections…" : "Select section…"}</option>
               {sections.map(s => <option key={`${s.standard}:${s.unitSystem}:${s.designation}`} value={s.designation}>{s.designation}</option>)}
             </select>
@@ -133,7 +155,16 @@ export default function RunForm({ projectId, projectName, unitSystem, codeProfil
             <input name={field.key} type="number" inputMode="decimal" required step="any" min="0" max={field.key === "shearLagFactor" ? 1 : field.key === "netArea" ? selectedProfile?.area : undefined} value={fields[field.key] ?? ""}
               onChange={e => setFields(prev => ({ ...prev, [field.key]: e.target.value }))} />
           </label>)}
-          <p>{type === "brace" ? "Scope: gross yielding, effective-net-area rupture and flexural buckling about both axes. Calculated checks are not a complete brace or connection design." : type === "beam" ? "Scope: elastic major-axis flexure and simplified web shear. Lateral-torsional buckling and section classification are not checked." : type === "column" ? "Scope: weak-axis flexural buckling under axial compression. Local/torsional buckling and combined bending are not checked." : "Scope: concentric axial compression only. Reports required thickness; supplied thickness, anchors, welds, uplift and moment are not checked."}</p>
+          {type === "beam" && <BeamAssessmentFields unitSystem={unitSystem} codeProfile={codeProfile}
+            enabled={assessBeam} onEnabledChange={enabled => { setAssessBeam(enabled); setBeamLoadConfirmed(false); setBeamRestraintConfirmed(false); }}
+            fields={fields} onFieldChange={(key, value) => {
+              setFields(prev => ({ ...prev, [key]: value }));
+              setBeamLoadConfirmed(false);
+              setBeamRestraintConfirmed(false);
+            }}
+            loadConfirmed={beamLoadConfirmed} onLoadConfirmedChange={setBeamLoadConfirmed}
+            restraintConfirmed={beamRestraintConfirmed} onRestraintConfirmedChange={setBeamRestraintConfirmed} />}
+          {type !== "beam" && <p>{type === "brace" ? "Scope: gross yielding, effective-net-area rupture and flexural buckling about both axes. Calculated checks are not a complete brace or connection design." : type === "column" ? "Scope: weak-axis flexural buckling under axial compression. Local/torsional buckling and combined bending are not checked." : "Scope: concentric axial compression only. Reports required thickness; supplied thickness, anchors, welds, uplift and moment are not checked."}</p>}
         </>}
       </fieldset>
       <button type="submit" disabled={pending || !type || !section || sectionsLoading || !!sectionError}>{pending ? "Calculating…" : "Run calculation"}</button>

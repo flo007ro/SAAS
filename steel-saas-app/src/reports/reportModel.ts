@@ -1,5 +1,6 @@
 import type { DesignResult } from "../domain/resultContract";
-import { demandLabel, implementedChecksVerdict, resultWarnings } from "../domain/resultPresentation";
+import { beamCheckRows, beamChecksVerdict, beamSectionPropertyRows, beamServiceabilityRows, demandLabel, implementedChecksVerdict, resultWarnings } from "../domain/resultPresentation";
+import { legacyBeamDiagnosticRows, LEGACY_DIAGNOSTIC_KEYS } from "./legacyBeamDiagnostics";
 
 export type ReportModel = {
   title: string;
@@ -8,6 +9,10 @@ export type ReportModel = {
   calculationLines: string[];
   warnings: string[];
   codeReferences: string[];
+  beamCheckRows?: ReturnType<typeof beamCheckRows>;
+  sectionPropertyRows?: ReturnType<typeof beamSectionPropertyRows>;
+  serviceabilityRows?: ReturnType<typeof beamServiceabilityRows>;
+  legacyDiagnosticRows?: ReturnType<typeof legacyBeamDiagnosticRows>;
   signatureBlock: {
     title: string;
     fields: string[];
@@ -15,18 +20,23 @@ export type ReportModel = {
 };
 
 export function buildReportModelFromResultJson(result: DesignResult): ReportModel {
+  const checks = result.moduleType === "beam" ? result.beamChecks : undefined;
   return {
     title: result.moduleType === "brace" ? "Brace preliminary member checks — engineering review required" : `${result.moduleType} design calculation`,
     inputRows: Object.entries(result.displayInputSnapshot).map(([key, entry]) => ({
       label: demandLabel(key, result.codeProfile, entry.label),
       value: `${entry.value} ${entry.unit}`,
     })),
-    resultRows: Object.entries(result.displayResults).map(([label, value]) => ({
+    resultRows: Object.entries(result.displayResults).filter(([key]) => !(checks && LEGACY_DIAGNOSTIC_KEYS.some(diagnosticKey => diagnosticKey === key))).map(([label, value]) => ({
       label: label === "pass" ? "Implemented checks" : label,
-      value: label === "pass" ? (result.moduleType === "brace" ? "Engineering review required" : implementedChecksVerdict(value)) : String(value),
+      value: label === "pass" ? (checks ? beamChecksVerdict(checks) : result.moduleType === "brace" ? "Engineering review required" : implementedChecksVerdict(value)) : String(value),
     })),
     calculationLines: result.calculationLines,
-    warnings: resultWarnings(result.moduleType, result.warnings),
+    warnings: resultWarnings(result.moduleType, result.warnings, checks),
+    ...(checks ? { beamCheckRows: beamCheckRows(checks) } : {}),
+    ...(checks ? { serviceabilityRows: beamServiceabilityRows(result) } : {}),
+    ...(checks ? { legacyDiagnosticRows: legacyBeamDiagnosticRows(result) } : {}),
+    ...(checks && result.sectionSnapshot ? { sectionPropertyRows: beamSectionPropertyRows(result.sectionSnapshot, result.unitSystem) } : {}),
     codeReferences: result.codeReferences,
     signatureBlock: {
       title: "Engineer of Record",

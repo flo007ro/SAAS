@@ -4,6 +4,7 @@ import { validateRunInput } from "./runInputValidation";
 import type { DesignRunRequest } from "../app/api/design-runs/schema";
 import { calculateBeamDesign } from "./beamDesign";
 import { EngineError } from "./engineError";
+import { calculateBeamAssessment } from "./beamAssessment";
 
 type DisplayValue = { label: string; value: string | number; unit: string };
 
@@ -30,7 +31,7 @@ export function runBeamEngine(
 
   const section = validateRunInput("beam", project, inputJson as DesignRunRequest["inputJson"]);
 
-  return calculateBeamDesign({
+  const legacyResult = calculateBeamDesign({
     runId,
     codeProfile: project.codeProfile,
     unitSystem: project.unitSystem,
@@ -46,4 +47,5 @@ export function runBeamEngine(
       unit: factoredShear.unit as EngineeringUnit,
     },
   });
+  return calculateBeamAssessment({ legacyResult, section, inputJson });
 }

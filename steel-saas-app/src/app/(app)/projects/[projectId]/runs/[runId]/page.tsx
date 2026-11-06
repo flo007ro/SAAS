@@ -3,7 +3,9 @@ import { auth } from "@/lib/auth";
 import { redirect, notFound } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
-import { demandLabel, implementedChecksVerdict, resultWarnings } from "../../../../../../domain/resultPresentation";
+import { beamCheckRows, beamChecksVerdict, beamSectionPropertyRows, beamServiceabilityRows, demandLabel, implementedChecksVerdict, resultWarnings } from "../../../../../../domain/resultPresentation";
+import { beamChecksSchema } from "../../../../../../domain/resultContract";
+import { legacyBeamDiagnosticRows, LEGACY_DIAGNOSTICS_NOTE, LEGACY_DIAGNOSTICS_TITLE } from "../../../../../../reports/legacyBeamDiagnostics";
 
 function Row({ label, value, highlight }: { label: string; value: string; highlight?: "pass" | "fail" | null }) {
   return (
@@ -11,12 +13,19 @@ function Row({ label, value, highlight }: { label: string; value: string; highli
       display: "flex",
       justifyContent: "space-between",
       alignItems: "center",
+      gap: "8px 16px",
+      flexWrap: "wrap",
       padding: "10px 0",
       borderBottom: "1px solid rgba(148,174,191,0.06)",
     }}>
-      <span style={{ color: "rgba(148,163,184,0.7)", fontSize: 13 }}>{label}</span>
+      <span style={{ color: "rgba(148,163,184,0.7)", fontSize: 13, minWidth: 0, maxWidth: "100%", overflowWrap: "anywhere", flex: "1 1 180px" }}>{label}</span>
       <span style={{
         fontSize: 13,
+        minWidth: 0,
+        maxWidth: "100%",
+        overflowWrap: "anywhere",
+        flex: "1 1 180px",
+        textAlign: "right",
         fontFamily: "monospace",
         fontWeight: highlight ? 600 : 400,
         color: highlight === "pass" ? "#34d399" : highlight === "fail" ? "#f87171" : "#e8edf0",
@@ -66,16 +75,24 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
   const display = result?.displayResults ?? {};
   const snapshot = result?.displayInputSnapshot ?? {};
   const section = result?.sectionSnapshot ?? {};
-  const warnings = resultWarnings(run.type, result?.warnings ?? []);
+  const modernBeam = run.type === "beam" && result?.beamChecks !== undefined;
+  const parsedChecks = beamChecksSchema.safeParse(result?.beamChecks);
+  const checks = modernBeam && parsedChecks.success ? parsedChecks.data : undefined;
+  const warnings = modernBeam && !checks
+    ? [...(result?.warnings ?? []), "Stored beam checks are invalid; engineering review required."]
+    : resultWarnings(run.type, result?.warnings ?? [], checks);
   const codeProfile = result?.codeProfile ?? run.project.codeProfile;
   const codeRefs = result?.codeReferences ?? [];
-  const overallPass = display.pass;
+  const verdict = modernBeam ? beamChecksVerdict(result.beamChecks) : implementedChecksVerdict(display.pass);
+  const overallPass = modernBeam ? verdict === "Implemented checks pass" : display.pass;
+  const reviewRequired = run.type === "brace" || (modernBeam && verdict === "Engineering review required");
+  const diagnosticRows = modernBeam ? legacyBeamDiagnosticRows({ ...result, moduleType: "beam" }) : [];
 
   const typeLabel: Record<string, string> = { beam: "Beam", column: "Column", base_plate: "Base Plate", brace: "Brace member checks" };
 
   return (
     <div style={{ minHeight: "100vh", background: "transparent", position: "relative" }}>
-      <div style={{ position: "relative", zIndex: 10, padding: "48px 56px", maxWidth: 860 }}>
+      <div style={{ position: "relative", zIndex: 10, padding: "32px clamp(16px, 4%, 56px)", maxWidth: 860 }}>
 
         {/* Back */}
         <Link href={`/projects/${run.projectId}`} style={{ display: "inline-flex", alignItems: "center", gap: 6, color: "rgba(148,174,191,0.5)", fontSize: 12, fontFamily: "monospace", textDecoration: "none", marginBottom: 32 }}>
@@ -94,14 +111,14 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
           </div>
           {run.status === "complete" && result && (
             <div style={{
-              background: run.type === "brace" ? "rgba(251,191,36,0.08)" : overallPass ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)",
-              border: `1px solid ${run.type === "brace" ? "rgba(251,191,36,0.3)" : overallPass ? "rgba(52,211,153,0.3)" : "rgba(248,113,113,0.3)"}`,
+              background: reviewRequired ? "rgba(251,191,36,0.08)" : overallPass ? "rgba(52,211,153,0.1)" : "rgba(248,113,113,0.1)",
+              border: `1px solid ${reviewRequired ? "rgba(251,191,36,0.3)" : overallPass ? "rgba(52,211,153,0.3)" : "rgba(248,113,113,0.3)"}`,
               borderRadius: 10,
               padding: "12px 20px",
               textAlign: "center",
             }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: run.type === "brace" ? "#fbbf24" : overallPass ? "#34d399" : "#f87171", fontFamily: "monospace", overflowWrap: "anywhere" }}>
-                {run.type === "brace" ? "REVIEW REQUIRED" : implementedChecksVerdict(overallPass)}
+              <div style={{ fontSize: 14, fontWeight: 700, color: reviewRequired ? "#fbbf24" : overallPass ? "#34d399" : "#f87171", fontFamily: "monospace", overflowWrap: "anywhere" }}>
+                {run.type === "brace" ? "REVIEW REQUIRED" : verdict}
               </div>
             </div>
           )}
@@ -138,6 +155,22 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
             )}
 
             {/* Demand / Capacity */}
+            {checks && <Card title="INPUT SNAPSHOT">
+              {Object.entries(snapshot).map(([key, value]) => {
+                const entry = value as { label: string; value: string | number; unit: string };
+                return <Row key={key} label={demandLabel(key, codeProfile, entry.label)} value={`${entry.value} ${entry.unit}`} />;
+              })}
+            </Card>}
+            {checks && <Card title="BEAM CHECKS">
+              {beamCheckRows(checks).map(check => <div key={check.key}>
+                <Row label={check.label} value={check.status === "not_checked" ? "Not checked" : check.status === "pass" ? "Pass" : "Fail"}
+                  highlight={check.status === "not_checked" ? null : check.status} />
+                <p style={{ color: check.status === "not_checked" ? "#fbbf24" : "#cbd5e1", fontSize: 13, overflowWrap: "anywhere" }}>{check.summary}{check.ratio !== undefined ? ` (DCR ${check.ratio})` : ""}</p>
+              </div>)}
+            </Card>}
+            {checks && beamServiceabilityRows(result).length > 0 && <Card title="SERVICEABILITY">
+              {beamServiceabilityRows(result).map(row => <Row key={row.label} label={row.label} value={row.value} />)}
+            </Card>}
             <Card title="DEMAND / CAPACITY">
               {run.type === "brace" && <>
                 <Row label="Assessment" value="Preliminary member checks; engineering review required" />
@@ -160,7 +193,7 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
                   <Row
                     label="Moment DCR"
                     value={display.momentDCR != null ? display.momentDCR.toFixed(3) : "—"}
-                    highlight={display.momentDCR != null ? (display.momentDCR <= 1 ? "pass" : "fail") : null}
+                    highlight={modernBeam ? (checks?.flexure.status === "not_checked" ? null : checks?.flexure.status ?? null) : display.momentDCR != null ? (display.momentDCR <= 1 ? "pass" : "fail") : null}
                   />
                   <div style={{ margin: "8px 0" }} />
                   <Row label={demandLabel("factoredShear", codeProfile)} value={`${snapshot.factoredShear?.value ?? "—"} ${snapshot.factoredShear?.unit ?? ""}`} />
@@ -168,7 +201,7 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
                   <Row
                     label="Shear DCR"
                     value={display.shearDCR != null ? display.shearDCR.toFixed(3) : "—"}
-                    highlight={display.shearDCR != null ? (display.shearDCR <= 1 ? "pass" : "fail") : null}
+                    highlight={modernBeam ? (checks?.shear.status === "not_checked" ? null : checks?.shear.status ?? null) : display.shearDCR != null ? (display.shearDCR <= 1 ? "pass" : "fail") : null}
                   />
                 </>
               )}
@@ -199,6 +232,11 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
               )}
             </Card>
 
+            {diagnosticRows.length > 0 && <Card title={LEGACY_DIAGNOSTICS_TITLE}>
+              <p style={{ color: "#cbd5e1", fontSize: 13, lineHeight: 1.6, overflowWrap: "anywhere" }}>{LEGACY_DIAGNOSTICS_NOTE}</p>
+              {diagnosticRows.map(row => <Row key={row.label} label={row.label} value={row.value} />)}
+            </Card>}
+
             {section.designation && <div style={{ marginBottom: 16 }}><ProfileViewer profile={{
               designation: section.designation, unitSystem: result.unitSystem,
               depth: section.d, flangeWidth: section.bf, webThickness: section.tw, flangeThickness: section.tf,
@@ -214,6 +252,7 @@ export default async function RunResultPage({ params }: { params: Promise<{ proj
                 {section.Sx && <Row label="Elastic section modulus Sx" value={`${section.Sx} ${(result?.unitSystem ?? run.project.unitSystem) === "metric" ? "mm³" : "in³"}`} />}
                 {section.ry && <Row label="Weak-axis ry" value={`${section.ry} ${(result?.unitSystem ?? run.project.unitSystem) === "metric" ? "mm" : "in"}`} />}
                 {section.Fy && <Row label="Yield strength Fy" value={`${section.Fy} ${(result?.unitSystem ?? run.project.unitSystem) === "metric" ? "MPa" : "ksi"}`} />}
+                {checks && beamSectionPropertyRows(section, result.unitSystem).map(row => <Row key={row.label} label={row.label} value={row.value} />)}
               </Card>
             )}
 

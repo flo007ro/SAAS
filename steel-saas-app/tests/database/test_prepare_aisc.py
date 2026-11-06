@@ -15,14 +15,20 @@ module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(module)
 
 
-def workbook_bytes(*, invalid=False, duplicate=False):
+def workbook_bytes(*, invalid=False, duplicate=False, beam=False, invalid_beam=False):
     book = Workbook()
     sheet = book.active
     sheet.title = "Database v16.0"
-    sheet.append(["Type", "EDI_Std_Nomenclature", "AISC_Manual_Label", "T_F", "W", "A", "d",
-                  "bf", "tw", "tf", "Sx", "Ix", "rx", "Sy", "Iy", "ry", "AISC_Manual_Label", "W"])
+    headers = ["Type", "EDI_Std_Nomenclature", "AISC_Manual_Label", "T_F", "W", "A", "d",
+               "bf", "tw", "tf", "Sx", "Ix", "rx", "Sy", "Iy", "ry", "AISC_Manual_Label", "W"]
     row = ["W", "W10X20", "W10X20", "F", 20, 6, 10, 6, 0.2, 0.3, 20, 100, 4, 6, 18, 1.7,
            "W250X30", 30]
+    if beam:
+        headers += ["Zx", "J", "Cw", "rts", "ho", "kdes", "h/tw", "bf/2tf"]
+        row += [57, 0.906, 1440, 2.21, 11.4, 1.02, 33.6, 7.77]
+        if invalid_beam:
+            row[-6] = "=2*720"
+    sheet.append(headers)
     if invalid:
         row[5] = "=1+5"
     sheet.append(row)
@@ -35,6 +41,14 @@ def workbook_bytes(*, invalid=False, duplicate=False):
 
 
 class PrepareAiscTests(unittest.TestCase):
+    def test_extracts_verified_beam_columns_and_rejects_formulas_in_optional_fields(self):
+        result = module.prepare_catalog(workbook_bytes(beam=True), material="ASTM_A992_Fy50ksi")
+        for field, expected in {"Zx": 57, "J": 0.906, "Cw": 1440, "rts": 2.21,
+                                "ho": 11.4, "kdes": 1.02, "h/tw": 33.6, "bf/2tf": 7.77}.items():
+            self.assertEqual(result["rows"][0].get(field), expected)
+        with self.assertRaises(ValueError):
+            module.prepare_catalog(workbook_bytes(beam=True, invalid_beam=True), material="ASTM_A992_Fy50ksi")
+
     def test_reads_first_us_headers_excludes_non_w_and_hashes_exact_workbook(self):
         import hashlib
         raw = workbook_bytes()
